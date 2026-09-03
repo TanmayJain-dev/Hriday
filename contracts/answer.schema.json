@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HRIDAY Answer",
+  "type": "object",
+  "required": ["answer", "confidence", "graph_result", "evidence", "verification"],
+  "properties": {
+    "answer": {"type": "string"},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "graph_result": {"type": "object"},
+    "evidence": {"type": "array"},
+    "verification": {"type": "object"}
+  }
+}
