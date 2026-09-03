@@ -1,37 +1,41 @@
 # Member 1 — Core Architecture & Graph Intelligence
 
-This is the deepest technical role in the prototype. The assigned person owns the engineering core, not everyone else's code.
+## Mission
 
-## Primary ownership
+Own the technical center of HRIDAY. Build the contracts, graph abstraction, deterministic graph behavior, pipeline orchestration and integration layer that allow every other subsystem to plug together cleanly.
 
-- `contracts/`
-- `backend/orchestration/`
-- `backend/intelligence/graph/`
-- graph/query semantics
-- integration tests
+## Owned paths
 
-## Hard technical backlog
+- `contracts/**`
+- `backend/orchestration/**`
+- `backend/intelligence/graph/**`
+- `backend/intelligence/query/**` when it concerns graph semantics/tool contracts
+- `backend/api/**` only for integration wiring
+- `tests/graph/**`
+- `tests/query/**`
+- `tests/integration/**`
+- architecture decision records
 
-1. Define the canonical engineering graph model.
-2. Implement the `GraphStore` interface.
-3. Implement an in-process graph backend first.
-4. Implement upstream/downstream/path traversal.
-5. Build graph construction from `TopologyResult`.
-6. Preserve evidence and confidence through graph facts.
-7. Define supported query intents.
-8. Implement query planning over constrained graph operations.
-9. Add graph validation hooks.
-10. Integrate the vertical pipeline.
-11. Own cross-subsystem integration tests.
+## Do not casually edit
 
-## Invariants
+- `frontend/**`
+- `backend/intelligence/extraction/**`
+- `backend/intelligence/topology/**`
+- `backend/evidence/**`
+- `backend/verification/**`
 
-- unsupported edges are never silently accepted
-- every returned claim can expose its graph path
-- graph claims can request source evidence
-- uncertainty survives the pipeline
-- the LLM cannot directly mutate topology
+## Hard deliverables
 
-## Important boundary
+1. Canonical graph model.
+2. `GraphStore` interface.
+3. In-process NetworkX implementation.
+4. Graph builder from `TopologyResult`.
+5. Deterministic downstream/upstream/path operations.
+6. Provenance + confidence propagation.
+7. Query intent schema and read-only graph tool boundary.
+8. Pipeline orchestration.
+9. End-to-end integration tests using fixtures.
 
-Do not become the project's universal fixer. When another subsystem is wrong, prefer a contract-level change, issue, or review request over editing its internals.
+## Engineering standard
+
+Never solve a graph problem by asking the LLM to guess. The LLM may plan a constrained query; the graph engine decides the result.

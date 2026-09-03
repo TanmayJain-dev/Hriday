@@ -1,16 +1,16 @@
-# Ownership Boundaries
+# Ownership Rules
 
-Member identities are assigned by the team. These are role boundaries, not permanent personal assignments.
+Member identities are intentionally unassigned until the team meeting. The following are domain packages.
 
-| Role | Primary ownership | Protected surfaces |
-|---|---|---|
-| Core Architecture & Graph Intelligence | `contracts/`, `backend/orchestration/`, `backend/intelligence/graph/`, core query semantics | all other domains except through contracts/review |
-| Frontend & Visualization | `frontend/` | backend internals |
-| Visual Extraction | `backend/intelligence/extraction/`, extraction tests/docs | topology/graph/query internals |
-| Topology Reconstruction | `backend/intelligence/topology/`, topology tests/docs | extraction/graph/query internals |
-| Agent Integration | `backend/intelligence/query/` agent/tooling | topology internals |
-| Evidence & Verification | `backend/evidence/`, `backend/verification/` | graph algorithms/frontend |
+| Package | Primary responsibility |
+|---|---|
+| Member 1 | Core architecture, contracts, graph, orchestration, integration |
+| Member 2 | Frontend and visualization |
+| Member 3 | Visual extraction |
+| Member 4 | Topology reconstruction |
+| Member 5 | Agent/tool integration |
+| Member 6 | Evidence and verification |
 
-Cross-domain changes require a PR note explaining the dependency.
+Ownership is about edit boundaries, not status. A contributor should normally modify only their domain plus explicitly approved contract/interface changes.
 
-Shared files such as `contracts/`, root architecture documents, dependency manifests, and CI configuration are protected surfaces. Coordinate before changing them.
+Shared/protected surfaces: `contracts/`, root architecture docs, dependency manifests, CI configuration.

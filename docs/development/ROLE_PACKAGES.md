@@ -1,7 +1,5 @@
 # Role Packages
 
-Member numbers are assigned by the team. These packages describe the work; names are intentionally left open until the team meeting.
-
 ## Role 1 — Core Architecture & Graph Intelligence
 
 Hardest technical package.
@@ -19,26 +17,56 @@ Own:
 - confidence propagation
 - integration tests
 
-Success criterion: every answer can be reproduced from deterministic graph operations and linked evidence.
+Primary success criterion: every answer can be reproduced from deterministic graph operations and linked evidence.
 
 ## Role 2 — Frontend & Visualization
 
-Own upload, processing state, P&ID viewer, graph visualization, query UI, evidence highlighting, and verification UI.
+Own:
+- upload experience
+- processing state
+- P&ID viewer
+- graph visualization
+- query UI
+- evidence highlighting
+- verification interface
 
 ## Role 3 — Visual Extraction
 
-Own image/PDF preprocessing, OCR adapter, detector adapter, text/entity association, line candidates, and extraction confidence.
+Own:
+- image/PDF preprocessing
+- OCR adapter
+- detector adapter
+- text/entity association
+- line candidates
+- extraction confidence
 
 ## Role 4 — Topology Reconstruction
 
-Own line tracing, endpoints, junction-vs-crossing decisions, geometry, object-line association, topology confidence, and topology rules.
+Own:
+- line tracing
+- endpoint detection
+- junction vs crossing analysis
+- connection inference
+- geometric validation
+- topology confidence
 
-## Role 5 — Agent Integration
+## Role 5 — Agent & Tool Integration
 
-Own entity resolution, intent parsing, constrained tool definitions, local-model adapter, query planning, and explanation assembly.
+Own:
+- entity resolution
+- intent handling
+- constrained graph tools
+- local model adapter
+- answer explanation
 
-The agent never mutates topology directly.
+The agent consumes graph truth; it does not invent topology.
 
 ## Role 6 — Evidence & Human Verification
 
-Own evidence mapping, confidence reporting, review queue, confirm/reject/edit decisions, graph correction events, and review contracts.
+Own:
+- evidence mapping
+- confidence gate presentation
+- review queue
+- confirm/reject/edit decisions
+- correction events
+- provenance history

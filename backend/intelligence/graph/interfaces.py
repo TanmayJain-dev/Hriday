@@ -1,28 +1,34 @@
-"""GraphStore boundary for HRIDAY.
-
-Concrete storage implementations must live behind this interface so the
-query layer never depends directly on a graph library or database.
-"""
+"""Stable graph contract shared by topology, query, and orchestration layers."""
 from __future__ import annotations
 
-from typing import Any, Iterable, Protocol
+from dataclasses import dataclass
+from typing import Any, Protocol
+
+
+@dataclass(frozen=True)
+class GraphNode:
+    id: str
+    type: str
+    attributes: dict[str, Any]
+    confidence: float
+
+
+@dataclass(frozen=True)
+class GraphEdge:
+    source: str
+    target: str
+    relationship: str
+    attributes: dict[str, Any]
+    confidence: float
+    evidence_ids: tuple[str, ...] = ()
 
 
 class GraphStore(Protocol):
-    def add_node(self, node_id: str, **attributes: Any) -> None: ...
+    """Read-only consumer contract plus controlled mutation primitives."""
 
-    def add_edge(self, source: str, target: str, **attributes: Any) -> None: ...
-
-    def get_node(self, node_id: str) -> dict[str, Any] | None: ...
-
-    def get_neighbors(self, node_id: str) -> Iterable[str]: ...
-
-    def downstream(self, node_id: str, depth: int | None = None) -> list[list[str]]: ...
-
-    def upstream(self, node_id: str, depth: int | None = None) -> list[list[str]]: ...
-
-    def shortest_path(self, source: str, target: str) -> list[str] | None: ...
-
-    def get_edge(self, source: str, target: str) -> dict[str, Any] | None: ...
-
-    def health(self) -> dict[str, Any]: ...
+    def add_node(self, node: GraphNode) -> None: ...
+    def add_edge(self, edge: GraphEdge) -> None: ...
+    def get_node(self, node_id: str) -> GraphNode | None: ...
+    def get_neighbors(self, node_id: str, relationship: str | None = None) -> list[GraphNode]: ...
+    def downstream(self, node_id: str, max_depth: int | None = None) -> list[list[str]]: ...
+    def upstream(self, node_id: str, max_depth: int | None = None) -> list[list[str]]: ...

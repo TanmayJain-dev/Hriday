@@ -6,6 +6,6 @@
   "properties": {
     "intent": {"type": "string"},
     "entity": {"type": ["string", "null"]},
-    "depth": {"type": ["integer", "null"]}
+    "depth": {"type": ["integer", "null"], "minimum": 1}
   }
 }
