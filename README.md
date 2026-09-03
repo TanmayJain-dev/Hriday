@@ -1,97 +1,51 @@
 # HRIDAY
 
-> **Sovereign Industrial AI — from P&ID pixels to verifiable engineering knowledge.**
+> Sovereign Industrial AI — from P&ID pixels to verifiable engineering knowledge.
 
 **Team GARUD · Smart India Hackathon 2026 · SIH26117 · MRPL**
 
-HRIDAY is a **sovereign, on-premise, agentic AI workbench for confidential industrial engineering work**. Its flagship MVP turns a legacy Piping & Instrumentation Diagram (P&ID) into a topology-aware engineering graph that an engineer can query in natural language — while keeping visual evidence, confidence, provenance, and human verification attached to the result.
+HRIDAY is a sovereign, on-premise, agentic AI workbench for confidential industrial engineering work. Its flagship MVP transforms a supported P&ID drawing into a topology-aware engineering graph that engineers can query in natural language, with evidence, confidence, provenance, and human verification attached to important results.
 
 ## The core idea
 
 ```text
 CONFIDENTIAL P&ID
-   ↓
+      ↓
 VISUAL PERCEPTION
-   ↓
+      ↓
 STRUCTURED EVIDENCE
-   ↓
+      ↓
 TOPOLOGY RECONSTRUCTION
-   ↓
+      ↓
 ENGINEERING GRAPH
-   ↓
+      ↓
 CONSTRAINED LOCAL AGENT
-   ↓
+      ↓
 EVIDENCE-BACKED ANSWER
-   ↓
+      ↓
 CONFIDENCE GATE → HUMAN REVIEW when required
 ```
 
 **Vision sees. Topology connects. Graph stores truth. Agent queries. Evidence explains. Human verifies uncertainty.**
 
-The LLM is **not** the source of truth for plant connectivity.
+The LLM is not the source of truth for plant connectivity.
 
-## Why this is not “chat with PDF”
+## Why a P&ID is different from an ordinary PDF
 
-A P&ID is a relational engineering system, not merely a text document. Proximity is not connectivity; thin process lines, crossings, junctions, labels and directionality carry relationships that ordinary semantic chunking cannot safely recover.
+A conventional document assistant can retrieve text. A P&ID encodes relationships through geometry, symbols, lines, junctions, crossings, labels and direction. Two nearby labels can be unrelated; two distant objects can be connected by a thin line; a crossing can be a connection or two independent paths.
 
-HRIDAY therefore separates observation from interpretation and persists supported relationships as a graph with provenance.
+HRIDAY therefore does not reduce the problem to `PDF → OCR → chunks → LLM`. It separates observation from topology interpretation and persists supported relationships as a provenance-aware graph.
 
-## What makes the architecture defensible
-
-- **Topology-first:** connectivity is explicitly reconstructed from geometry, endpoints, junction logic and engineering rules.
-- **Evidence-first:** material claims retain page/region references and supporting confidence.
-- **Uncertainty-aware:** ambiguous results remain ambiguous and can enter human review.
-- **Sovereign:** the target deployment boundary is local/on-premise with no architectural requirement for external AI APIs.
-- **Model-agnostic:** visual models, OCR providers and graph stores sit behind interfaces and contracts.
-
-## LLM boundary
-
-The local model may understand intent, resolve aliases, choose read-only graph tools and explain retrieved evidence.
-
-It may **not** invent connectivity, fabricate evidence, silently override graph facts, suppress uncertainty, actuate equipment, approve LOTO/operations, or make autonomous plant-control decisions.
-
-## Flagship MVP
-
-```text
-P&ID upload
-   ↓
-Extraction
-   ↓
-Topology reconstruction
-   ↓
-Engineering graph
-   ↓
-Natural-language query
-   ↓
-Highlighted evidence
-   ↓
-Confidence gate
-   ↓
-Human verification when required
-```
-
-### Golden demo
-
-> **“What is downstream of P-101?”**
-
-Expected deterministic result on the demo fixture:
-
-```text
-P-101 → E-101 → V-102
-```
-
-A deliberately ambiguous crossing should instead produce a review state rather than an invented edge.
-
-## Architecture
+## Architecture at a glance
 
 ```text
 Frontend
+   │ HTTP / JSON
+   ▼
+FastAPI API
    │
    ▼
-FastAPI
-   │
-   ▼
-Orchestration
+Orchestration Pipeline
    │
    ├── Ingestion
    ├── Extraction
@@ -113,61 +67,109 @@ TopologyResult
    ↓
 GraphResult
    ↓
-QueryIntent / GraphResult
+QueryIntent + GraphResult
    ↓
 Evidence-backed Answer
 ```
 
-See `ARCHITECTURE.md`, `AGENTS.md`, `docs/architecture/`, and `contracts/`.
-
-## Repository design
-
-This repository is deliberately structured so six developers — many working through AI coding agents — can work in parallel without sharing a giant monolith.
-
-`contracts/` is the constitution. Folder ownership is explicit. Domain code stays near the domain. Fixtures allow subsystems to progress independently before the full perception stack is complete.
-
-### Intended ownership packages
-
-| Member | Domain package |
-|---|---|
-| 1 | Core architecture, graph, orchestration, integration |
-| 2 | Frontend and visualization |
-| 3 | Visual extraction |
-| 4 | Topology reconstruction |
-| 5 | Agent/tool integration |
-| 6 | Evidence and human verification |
-
-Member identities are intentionally unassigned until the team meeting.
-
-## Truth hierarchy
+## The truth hierarchy
 
 ```text
 1. Visual evidence
-2. Deterministic geometric observation
-3. Domain validation rule
+2. Deterministic geometric observations
+3. Domain validation rules
 4. Reconstructed topology
-5. Graph fact
-6. Retrieved graph result
+5. Graph facts
+6. Retrieved graph results
 7. LLM explanation
 ```
 
 **Never reverse this hierarchy.**
 
-## Safety boundary
+## What the LLM can and cannot do
 
-The MVP is a **read-only engineering intelligence and verification workbench**. It is not a plant control system, safety interlock, LOTO approval system, autonomous operations platform, or substitute for engineering judgment.
+### Allowed
 
-## Research foundation
+- understand natural-language intent
+- resolve aliases such as “pump 101” → `P-101`
+- choose constrained read-only graph tools
+- formulate graph queries
+- explain retrieved facts and evidence
 
-HRIDAY builds on complementary research in engineering-diagram digitization, P&ID-specific validation, relational/hyper-relational diagram extraction, explicit topology reconstruction, and GraphRAG-based P&ID interaction. See `docs/research/README.md` for the curated research direction.
+### Forbidden
 
-## Evaluation
+- invent connectivity
+- fabricate evidence
+- create unsupported edges
+- silently override graph facts
+- suppress uncertainty
+- actuate equipment
+- approve LOTO or operational safety actions
+- make autonomous plant-control decisions
 
-Every number must be labeled as **Target**, **Measured**, or **Paper Result**. Never present a research-paper metric as HRIDAY performance.
+**Architectural rule: the model explains retrieved truth; it does not manufacture it.**
 
-Metrics include extraction accuracy, junction/crossing accuracy, graph-path accuracy, evidence attribution, unsupported-claim rate, review/correction rate and defined manual-tracing time reduction.
+## Flagship MVP
 
-## Development principles
+The prototype intentionally proves one difficult vertical slice:
+
+```text
+P&ID upload
+   ↓
+Extraction
+   ↓
+Topology reconstruction
+   ↓
+Engineering graph
+   ↓
+Natural-language query
+   ↓
+Highlighted source evidence
+   ↓
+Confidence gate
+   ↓
+Human verification when required
+```
+
+### Golden demo
+
+> **“What is downstream of P-101?”**
+
+The deterministic graph should be able to return a path such as:
+
+```text
+P-101 → E-101 → V-102
+```
+
+A deliberately ambiguous crossing should instead become a reviewable state such as:
+
+```text
+Confidence: 0.62
+Human verification required.
+```
+
+That behavior is intentional. In an industrial context, visible uncertainty is better than a fluent unsupported answer.
+
+## Why the repository is structured this way
+
+Six developers — often using AI coding agents — need to work in parallel without sharing one giant monolith.
+
+`contracts/` is the constitution. Domain ownership is explicit. Subsystems exchange typed, documented results. Fixtures make upstream and downstream work independently testable. Graph storage is abstracted so the MVP can stay simple while remaining compatible with a future Neo4j implementation.
+
+### Intended role packages
+
+| Member | Package |
+|---|---|
+| 1 | Core architecture, graph, orchestration, integration |
+| 2 | Frontend and visualization |
+| 3 | Visual extraction |
+| 4 | Topology reconstruction |
+| 5 | Agent and tool integration |
+| 6 | Evidence and human verification |
+
+Identities are intentionally unassigned until the team meeting.
+
+## Engineering principles
 
 ```text
 Small modules.
@@ -180,21 +182,71 @@ Tests around hard algorithms.
 No silent architectural drift.
 ```
 
-## AI-agent entry point
+## Research foundation
 
-AI coding agents should read, in order:
+HRIDAY builds on complementary work in engineering-diagram digitization, P&ID-specific validation, relational and hyper-relational extraction, explicit topology reconstruction, and graph-based P&ID interaction. Research notes and the rationale for the architecture live in `docs/research/` and `docs/decisions/`.
+
+External research metrics are never HRIDAY results.
+
+## Evaluation
+
+Every metric must be labeled as one of:
+
+- **Target** — intended objective.
+- **Measured** — obtained from a defined HRIDAY experiment.
+- **Paper Result** — reported by external research.
+
+The benchmark focuses on extraction, junction/crossing behavior, topology edges, graph-path correctness, evidence attribution, unsupported-claim rate, human-review/correction behavior, and defined manual-tracing tasks.
+
+## Security boundary
+
+The MVP is read-only with respect to industrial systems and is designed for local/on-premise deployment. Real confidential P&IDs must never be committed to the repository; use synthetic or sanitized fixtures instead.
+
+This is a prototype security posture, not a production certification.
+
+## Development with AI agents
+
+An AI coding agent should be able to work from the repository itself. Start here:
 
 1. `AGENTS.md`
 2. `ARCHITECTURE.md`
 3. `docs/development/AI_AGENT_GUIDE.md`
-4. their `docs/development/member-X.md`
-5. relevant contracts
+4. `docs/development/member-X.md`
+5. the relevant contracts
 
-No separate project prompt should be necessary for ordinary implementation work.
+The agent must respect ownership, preserve contracts, test changes, inspect diffs, and report architectural blockers rather than inventing cross-domain fixes.
 
-## Current status
+## Development path
 
-**Architecture + executable bootstrap.** The repository intentionally starts with fixtures, interfaces, a deterministic in-process graph implementation, validation scripts and agent-safe development rules. Real perception providers can be added behind the same contracts.
+```text
+Architecture + contracts
+        ↓
+Contract-valid mocked pipeline
+        ↓
+Real extraction
+        ↓
+Real topology
+        ↓
+Graph querying
+        ↓
+Evidence + HITL
+        ↓
+Integration + demo polish
+```
+
+The prototype is deliberately narrow. It does not attempt full DEXPI conformance, an exhaustive ISA-5.1 ontology, custom foundation-model training, plant control, autonomous HAZOP/LOTO decisions, or broad enterprise document RAG.
+
+## Repository map
+
+```text
+backend/     → FastAPI + intelligence pipeline
+frontend/    → engineer-facing visualization
+contracts/   → protected subsystem interfaces
+data/        → synthetic fixtures only
+docs/        → architecture, roles, research, decisions, evaluation
+scripts/     → local validation and demo entry points
+tests/       → domain and integration tests
+```
 
 ## Team naming
 
@@ -202,6 +254,10 @@ No separate project prompt should be necessary for ordinary implementation work.
 
 **HRIDAY** = project.
 
+## Status
+
+**Architecture + executable bootstrap.** The repository contains the project constitution, domain boundaries, contracts, demo fixtures, initial graph/query/evidence primitives, and CI scaffolding. Implementation work should replace or extend these pieces through the documented interfaces.
+
 ## License
 
-Final licensing will be selected deliberately after confirming SIH requirements and the licenses of third-party models, datasets, and dependencies.
+Final licensing will be selected after confirming SIH requirements and the licenses of third-party models, datasets, and dependencies.
