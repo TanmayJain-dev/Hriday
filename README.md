@@ -6,408 +6,202 @@
 
 HRIDAY is a **sovereign, on-premise, agentic AI workbench for confidential industrial engineering work**. Its flagship MVP turns a legacy Piping & Instrumentation Diagram (P&ID) into a topology-aware engineering graph that an engineer can query in natural language — while keeping visual evidence, confidence, provenance, and human verification attached to the result.
 
----
-
-## The idea in one picture
+## The core idea
 
 ```text
-                 CONFIDENTIAL P&ID
-              PDF / PNG / SCAN / IMAGE
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │   VISUAL PERCEPTION  │
-              │ OpenCV · OCR · YOLO  │
-              │      · local VLM     │
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │  STRUCTURED EVIDENCE │
-              │ objects · tags ·     │
-              │ text · coordinates · │
-              │ line candidates      │
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │ TOPOLOGY ENGINE      │
-              │ geometry · junctions │
-              │ crossings · rules    │
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │ ENGINEERING GRAPH    │
-              │ entities · edges ·   │
-              │ provenance · scores  │
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │ LOCAL AGENT          │
-              │ intent → entity →    │
-              │ constrained graph    │
-              │ query → explanation  │
-              └──────────┬───────────┘
-                         │
-                         ▼
-          ┌───────────────────────────────┐
-          │  EVIDENCE-BACKED ANSWER      │
-          │  graph path + source region  │
-          │  + confidence + provenance   │
-          └──────────────┬────────────────┘
-                         │
-                 confidence gate
-                  ┌──────┴──────┐
-                  │             │
-                 HIGH          LOW
-                  │             │
-                  ▼             ▼
-               ANSWER      HUMAN REVIEW
-                                  │
-                                  ▼
-                           GRAPH CORRECTION
+CONFIDENTIAL P&ID
+   ↓
+VISUAL PERCEPTION
+   ↓
+STRUCTURED EVIDENCE
+   ↓
+TOPOLOGY RECONSTRUCTION
+   ↓
+ENGINEERING GRAPH
+   ↓
+CONSTRAINED LOCAL AGENT
+   ↓
+EVIDENCE-BACKED ANSWER
+   ↓
+CONFIDENCE GATE → HUMAN REVIEW when required
 ```
-
-### The core principle
 
 **Vision sees. Topology connects. Graph stores truth. Agent queries. Evidence explains. Human verifies uncertainty.**
 
 The LLM is **not** the source of truth for plant connectivity.
 
----
+## Why this is not “chat with PDF”
 
-## Why P&IDs are not ordinary PDFs
+A P&ID is a relational engineering system, not merely a text document. Proximity is not connectivity; thin process lines, crossings, junctions, labels and directionality carry relationships that ordinary semantic chunking cannot safely recover.
 
-A normal document assistant can find text near a phrase. A P&ID asks a different question:
+HRIDAY therefore separates observation from interpretation and persists supported relationships as a graph with provenance.
 
-> **What is physically / logically connected to what?**
+## What makes the architecture defensible
 
-Two labels can be centimetres apart yet have no process connection. Two distant objects can be connected by a thin line. A crossing may be a junction — or may simply be two lines passing over one another.
+- **Topology-first:** connectivity is explicitly reconstructed from geometry, endpoints, junction logic and engineering rules.
+- **Evidence-first:** material claims retain page/region references and supporting confidence.
+- **Uncertainty-aware:** ambiguous results remain ambiguous and can enter human review.
+- **Sovereign:** the target deployment boundary is local/on-premise with no architectural requirement for external AI APIs.
+- **Model-agnostic:** visual models, OCR providers and graph stores sit behind interfaces and contracts.
 
-That is why HRIDAY does **not** reduce the problem to `PDF → OCR → chunks → LLM`.
+## LLM boundary
 
-Instead, HRIDAY separates **visual observation** from **topological interpretation**, then persists the result as a graph with evidence.
+The local model may understand intent, resolve aliases, choose read-only graph tools and explain retrieved evidence.
 
----
-
-## What makes HRIDAY different
-
-### 01 — Topology-first
-
-Connectivity is reconstructed explicitly from geometry, junctions, line candidates, and engineering constraints rather than inferred from text proximity.
-
-### 02 — Evidence is first-class
-
-A graph edge is not merely `P-101 → E-101`. It can retain the page, region, source observation, confidence, and validation path that support that claim.
-
-### 03 — Uncertainty is visible
-
-Ambiguous interpretations do not become silent guesses. Low-confidence results are surfaced for human verification.
-
-### 04 — Sovereign by design
-
-The intended deployment boundary is local/on-premise. Sensitive P&IDs and engineering context do not need to leave the controlled environment.
-
-### 05 — Model-agnostic architecture
-
-The multimodal model, OCR backend, object detector, and graph store sit behind replaceable interfaces. The system is designed around contracts, not one vendor.
-
----
-
-## What the LLM does — and does not do
-
-### The LLM may
-
-- understand natural-language engineering questions
-- resolve aliases such as “pump 101” → `P-101`
-- select from constrained, read-only graph tools
-- formulate graph queries
-- explain retrieved graph facts and evidence
-
-### The LLM may not
-
-- invent connectivity
-- create unsupported graph edges
-- override deterministic topology facts silently
-- suppress uncertainty
-- actuate plant equipment
-- approve LOTO or operational safety actions
-- make autonomous plant-control decisions
-
-**Architectural rule:** the LLM explains retrieved truth; it does not manufacture it.
-
----
+It may **not** invent connectivity, fabricate evidence, silently override graph facts, suppress uncertainty, actuate equipment, approve LOTO/operations, or make autonomous plant-control decisions.
 
 ## Flagship MVP
 
-The first demonstrable product is intentionally narrow:
-
 ```text
 P&ID upload
-    ↓
+   ↓
 Extraction
-    ↓
+   ↓
 Topology reconstruction
-    ↓
+   ↓
 Engineering graph
-    ↓
+   ↓
 Natural-language query
-    ↓
+   ↓
 Highlighted evidence
-    ↓
+   ↓
 Confidence gate
-    ↓
+   ↓
 Human verification when required
 ```
 
-### Golden demo question
+### Golden demo
 
 > **“What is downstream of P-101?”**
 
-HRIDAY should be able to return a graph path such as:
+Expected deterministic result on the demo fixture:
 
 ```text
 P-101 → E-101 → V-102
 ```
 
-and show the engineer **where the evidence came from**.
-
-A deliberately ambiguous drawing should instead trigger:
-
-```text
-Confidence: 0.62
-Human verification required.
-```
-
-That behavior is a feature, not a failure.
-
----
+A deliberately ambiguous crossing should instead produce a review state rather than an invented edge.
 
 ## Architecture
 
 ```text
-frontend/
-   │
-   │ HTTP / JSON
-   ▼
-FastAPI API
+Frontend
    │
    ▼
-Orchestration Pipeline
+FastAPI
+   │
+   ▼
+Orchestration
    │
    ├── Ingestion
    ├── Extraction
    ├── Topology
    ├── Graph
-   ├── Query
+   ├── Query / Agent
    ├── Evidence
    └── Verification
 ```
 
-The internal flow is contract-driven:
+Contract flow:
 
 ```text
 DocumentInput
-      ↓
+   ↓
 ExtractionResult
-      ↓
+   ↓
 TopologyResult
-      ↓
+   ↓
 GraphResult
-      ↓
-QueryResult
-      ↓
+   ↓
+QueryIntent / GraphResult
+   ↓
 Evidence-backed Answer
 ```
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) and the detailed domain docs in [`docs/architecture/`](docs/architecture/).
+See `ARCHITECTURE.md`, `AGENTS.md`, `docs/architecture/`, and `contracts/`.
 
----
+## Repository design
 
-## Repository philosophy
+This repository is deliberately structured so six developers — many working through AI coding agents — can work in parallel without sharing a giant monolith.
 
-This repository is deliberately structured so **six people — including AI coding agents — can work in parallel without turning the project into merge-conflict soup.**
+`contracts/` is the constitution. Folder ownership is explicit. Domain code stays near the domain. Fixtures allow subsystems to progress independently before the full perception stack is complete.
 
-### Contracts are the constitution
+### Intended ownership packages
 
-`contracts/` defines what subsystems exchange.
-
-If Member A changes how extraction works internally, Member B should still receive the same `ExtractionResult` contract.
-
-If the graph backend changes from NetworkX to Neo4j, the query layer should not care.
-
-### Ownership is explicit
-
-Each contributor owns a bounded part of the tree. Do not “fix” another subsystem by editing it directly. Coordinate through interfaces, issues, or PRs.
-
-### Prototype first, infrastructure second
-
-The default prototype graph backend is expected to be an in-process implementation (e.g. NetworkX) behind `GraphStore`. Neo4j is an adapter target, not a reason to block the MVP.
-
----
-
-## Intended stack
-
-| Layer | Direction |
+| Member | Domain package |
 |---|---|
-| Frontend | Next.js + TypeScript |
-| API | Python + FastAPI |
-| Vision / geometry | OpenCV + selected local CV tools |
-| OCR | Pluggable OCR adapter |
-| Multimodal reasoning | Open-weight local VLM, benchmark-selected |
-| Graph | `GraphStore` abstraction; NetworkX first, Neo4j-compatible |
-| Agent | Local model + constrained tools |
-| Data contracts | JSON Schema |
-| Tests | Pytest + frontend test tooling |
-| Deployment | Local / on-premise |
+| 1 | Core architecture, graph, orchestration, integration |
+| 2 | Frontend and visualization |
+| 3 | Visual extraction |
+| 4 | Topology reconstruction |
+| 5 | Agent/tool integration |
+| 6 | Evidence and human verification |
 
-Nothing in this table is a promise that every listed technology is mandatory. Interfaces should remain replaceable.
+Member identities are intentionally unassigned until the team meeting.
 
----
+## Truth hierarchy
+
+```text
+1. Visual evidence
+2. Deterministic geometric observation
+3. Domain validation rule
+4. Reconstructed topology
+5. Graph fact
+6. Retrieved graph result
+7. LLM explanation
+```
+
+**Never reverse this hierarchy.**
 
 ## Safety boundary
 
-HRIDAY is a **read-only engineering intelligence and verification workbench** for the MVP.
-
-It is not:
-
-- a plant control system
-- an autonomous operations system
-- a LOTO approval system
-- a safety interlock
-- a substitute for engineering judgment
-
-Any future safety-sensitive use must introduce an explicit authorization and validation architecture beyond this prototype.
-
----
+The MVP is a **read-only engineering intelligence and verification workbench**. It is not a plant control system, safety interlock, LOTO approval system, autonomous operations platform, or substitute for engineering judgment.
 
 ## Research foundation
 
-The architecture builds on research across several stages of engineering-diagram intelligence:
+HRIDAY builds on complementary research in engineering-diagram digitization, P&ID-specific validation, relational/hyper-relational diagram extraction, explicit topology reconstruction, and GraphRAG-based P&ID interaction. See `docs/research/README.md` for the curated research direction.
 
-- **Mani et al. (CVPRW 2020)** — engineering diagram digitization using deep learning and graph search.
-- **Paliwal et al. (PAKDD 2021)** — P&ID digitization with domain-guided validation and correction.
-- **Bai et al. (CVPR 2026)** — end-to-end hyper-relational engineering-diagram extraction.
-- **Zhu et al. (2026)** — multimodal P&ID extraction followed by explicit process-topology reconstruction.
-- **Alimin & Schweidtmann (2026)** — GraphRAG-based interaction with P&IDs.
+## Evaluation
 
-HRIDAY's engineering direction is to integrate these ideas into a sovereign workflow where graph facts retain visual evidence and uncertain interpretations can be reviewed by a human.
+Every number must be labeled as **Target**, **Measured**, or **Paper Result**. Never present a research-paper metric as HRIDAY performance.
 
-Research notes live in [`docs/research/`](docs/research/).
+Metrics include extraction accuracy, junction/crossing accuracy, graph-path accuracy, evidence attribution, unsupported-claim rate, review/correction rate and defined manual-tracing time reduction.
 
----
-
-## Evaluation philosophy
-
-All performance claims in this repository must be labeled as one of:
-
-- **Target** — intended benchmark objective, not yet measured.
-- **Measured** — obtained from a defined experiment with reproducible methodology.
-- **Paper result** — reported by an external research paper, not by HRIDAY.
-
-Never present another paper's accuracy as HRIDAY's accuracy.
-
-The evaluation plan lives in [`docs/evaluation/METRICS.md`](docs/evaluation/METRICS.md).
-
----
-
-## Development rules
-
-### Never
+## Development principles
 
 ```text
-❌ push directly to main
-❌ force-push shared branches
-❌ reset or clean another developer's work
-❌ silently change a contract
-❌ invent graph facts
-❌ commit secrets or .env files
-❌ add random dependencies because a code generator suggested them
-❌ refactor unrelated modules while implementing a feature
+Small modules.
+Stable contracts.
+Deterministic facts.
+Explicit uncertainty.
+Read-only agent tools.
+Evidence attached to claims.
+Tests around hard algorithms.
+No silent architectural drift.
 ```
 
-### Always
+## AI-agent entry point
 
-```text
-✅ work on a feature branch
-✅ respect folder ownership
-✅ read AGENTS.md before using an AI coding agent
-✅ read ARCHITECTURE.md before changing architecture
-✅ read your role document before coding
-✅ add tests for non-trivial logic
-✅ inspect git diff before committing
-✅ make uncertainty explicit
-```
+AI coding agents should read, in order:
 
----
+1. `AGENTS.md`
+2. `ARCHITECTURE.md`
+3. `docs/development/AI_AGENT_GUIDE.md`
+4. their `docs/development/member-X.md`
+5. relevant contracts
 
-## Development through September 8
+No separate project prompt should be necessary for ordinary implementation work.
 
-The prototype is optimized around one convincing vertical slice rather than breadth:
+## Current status
 
-```text
-Day 1  → contracts + repository foundation
-Day 2  → extraction fixtures + real extraction path
-Day 3  → topology reconstruction
-Day 4  → graph + deterministic traversal
-Day 5  → natural-language query + constrained agent
-Day 6  → evidence + HITL
-Day 7  → integration + demo polish
-Day 8  → freeze, test, rehearse
-```
+**Architecture + executable bootstrap.** The repository intentionally starts with fixtures, interfaces, a deterministic in-process graph implementation, validation scripts and agent-safe development rules. Real perception providers can be added behind the same contracts.
 
-The team may change implementation details while preserving the architectural contracts and safety boundary.
+## Team naming
 
----
+**GARUD** = team.
 
-## Suggested demo scenarios
-
-### Simple chain
-
-```text
-V-101 → P-101 → E-101 → V-102
-```
-
-### Branching process
-
-```text
-             → V-102
-            /
-P-101 → E-101
-            \
-             → V-103
-```
-
-### Ambiguous crossing
-
-Use a deliberately ambiguous crossing/junction so the system can demonstrate **“I don't know yet — please verify”** rather than hallucinating an edge.
-
----
-
-## Project status
-
-**Stage:** architecture + repository bootstrap
-
-**Current priority:** make the end-to-end contract-driven demo work with controlled fixtures, then progressively replace mocked stages with real implementations.
-
-**Do not confuse this repository's targets, research results, or planned components with measured HRIDAY performance.**
-
----
-
-## Team
-
-**GARUD** is the team name.
-
-**HRIDAY** is the project.
-
-Member assignments are intentionally left open until the team meeting so contributors can choose roles according to capability.
-
-Prepared role packages live under [`docs/development/`](docs/development/).
-
----
+**HRIDAY** = project.
 
 ## License
 
-Choose the project's final license deliberately after confirming SIH rules, third-party model/tool licenses, and the team's preferred reuse policy. Until then, treat this repository as project source code rather than making an unsupported licensing claim.
+Final licensing will be selected deliberately after confirming SIH requirements and the licenses of third-party models, datasets, and dependencies.

@@ -1,17 +1,16 @@
-"""Small in-process graph store for the HRIDAY prototype."""
+"""Dependency-free directed graph store for the MVP."""
 from __future__ import annotations
-
 from collections import deque
 from .interfaces import GraphEdge, GraphNode
 
 
 class NetworkXGraphStore:
-    """Dependency-light directed graph implementation.
+    """In-memory graph with deterministic traversal semantics.
 
-    Kept intentionally self-contained for the MVP; it can later be replaced by
-    a real NetworkX-backed implementation without changing the GraphStore API.
+    Despite the class name, the MVP intentionally avoids requiring NetworkX;
+    the GraphStore interface lets a real NetworkX or Neo4j implementation be
+    introduced later without changing callers.
     """
-
     def __init__(self) -> None:
         self._nodes: dict[str, GraphNode] = {}
         self._edges: list[GraphEdge] = []
@@ -28,16 +27,16 @@ class NetworkXGraphStore:
         return self._nodes.get(node_id)
 
     def get_neighbors(self, node_id: str, relationship: str | None = None) -> list[GraphNode]:
-        result: list[GraphNode] = []
         seen: set[str] = set()
+        result: list[GraphNode] = []
         for edge in self._edges:
             if edge.source != node_id:
                 continue
             if relationship is not None and edge.relationship != relationship:
                 continue
             if edge.target not in seen:
-                result.append(self._nodes[edge.target])
                 seen.add(edge.target)
+                result.append(self._nodes[edge.target])
         return result
 
     def _traverse(self, node_id: str, direction: str, max_depth: int | None) -> list[list[str]]:
@@ -51,9 +50,14 @@ class NetworkXGraphStore:
                 continue
             current = path[-1]
             for edge in self._edges:
-                nxt = edge.target if direction == "downstream" else edge.source
-                if (direction == "downstream" and edge.source != current) or (direction == "upstream" and edge.target != current):
-                    continue
+                if direction == "downstream":
+                    if edge.source != current:
+                        continue
+                    nxt = edge.target
+                else:
+                    if edge.target != current:
+                        continue
+                    nxt = edge.source
                 if nxt in path:
                     continue
                 next_path = [*path, nxt]
