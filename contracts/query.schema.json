@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HRIDAY QueryIntent",
+  "type": "object",
+  "required": ["intent"],
+  "properties": {
+    "intent": {"type": "string"},
+    "entity": {"type": ["string", "null"]},
+    "depth": {"type": ["integer", "null"]}
+  }
+}
