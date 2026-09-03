@@ -1,0 +1,1 @@
+Bootstrap assembled and validated through the GitHub API. The `main` branch is intended to be the stable integration baseline.
