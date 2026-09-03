@@ -1,8 +1,5 @@
-"""Topology domain models."""
-from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
-
 
 @dataclass(frozen=True)
 class TopologyNode:
@@ -10,7 +7,6 @@ class TopologyNode:
     type: str
     confidence: float = 1.0
     attributes: dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass(frozen=True)
 class TopologyEdge:

@@ -1,8 +1,4 @@
-"""Stage-oriented pipeline shell. Concrete providers plug into these boundaries."""
-from __future__ import annotations
-
 from dataclasses import dataclass
-
 
 @dataclass
 class Pipeline:

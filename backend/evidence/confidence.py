@@ -1,7 +1,4 @@
-"""Configurable confidence gate for answer/review routing."""
-from __future__ import annotations
 from dataclasses import dataclass
-
 
 @dataclass(frozen=True)
 class ConfidencePolicy:

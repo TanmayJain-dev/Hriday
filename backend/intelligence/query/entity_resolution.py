@@ -1,6 +1,5 @@
-"""Conservative entity resolution for demo-scale P&IDs."""
+"""Conservative entity normalization for demo-scale P&IDs."""
 import re
-
 
 def normalize_entity_reference(value: str) -> str:
     cleaned = value.upper().strip()

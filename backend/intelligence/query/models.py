@@ -1,8 +1,5 @@
-"""Query intent models. Keep these independent from any LLM SDK."""
-from __future__ import annotations
-
+"""Query intent models independent of any LLM SDK."""
 from dataclasses import dataclass
-
 
 @dataclass(frozen=True)
 class QueryIntent:

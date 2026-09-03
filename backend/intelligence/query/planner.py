@@ -3,7 +3,6 @@ from .models import QueryIntent
 
 SUPPORTED_INTENTS = {"DOWNSTREAM", "UPSTREAM", "NEIGHBORS"}
 
-
 def execute_intent(graph, intent: QueryIntent):
     if intent.intent not in SUPPORTED_INTENTS:
         raise ValueError(f"Unsupported query intent: {intent.intent}")

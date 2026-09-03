@@ -1,6 +1,3 @@
-"""Small explicit rule checks; expand only when backed by domain requirements."""
-
-
 def validate_candidate_edge(edge: dict) -> list[str]:
     violations: list[str] = []
     if edge.get("source") == edge.get("target"):

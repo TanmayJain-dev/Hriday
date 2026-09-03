@@ -1,10 +1,7 @@
-"""Human verification state model."""
-from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
 VerificationStatus = Literal["not_required", "pending", "confirmed", "rejected", "corrected"]
-
 
 @dataclass(frozen=True)
 class VerificationDecision:
