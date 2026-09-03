@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HRIDAY ExtractionResult",
+  "type": "object",
+  "required": ["document_id", "entities", "text_regions", "line_candidates", "uncertainties"],
+  "properties": {
+    "document_id": {"type": "string"},
+    "entities": {"type": "array", "items": {"type": "object"}},
+    "text_regions": {"type": "array", "items": {"type": "object"}},
+    "line_candidates": {"type": "array", "items": {"type": "object"}},
+    "uncertainties": {"type": "array", "items": {"type": "object"}}
+  }
+}
