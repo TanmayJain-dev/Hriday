@@ -1,0 +1,1 @@
+Stable bootstrap baseline. Start work by reading AGENTS.md, ARCHITECTURE.md and your role package.
