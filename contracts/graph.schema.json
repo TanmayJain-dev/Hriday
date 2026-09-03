@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HRIDAY GraphResult",
+  "type": "object",
+  "required": ["document_id", "nodes", "edges"],
+  "properties": {
+    "document_id": {"type": "string"},
+    "nodes": {"type": "array", "items": {"type": "object"}},
+    "edges": {"type": "array", "items": {"type": "object"}}
+  }
+}
