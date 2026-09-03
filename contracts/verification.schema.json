@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HRIDAY VerificationDecision",
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": {"enum": ["not_required", "pending", "confirmed", "rejected", "corrected"]},
+    "review_id": {"type": ["string", "null"]},
+    "comment": {"type": ["string", "null"]}
+  }
+}
