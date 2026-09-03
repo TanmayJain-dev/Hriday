@@ -1,31 +1,9 @@
 """Stable graph contract shared by topology, query, and orchestration layers."""
 from __future__ import annotations
-
-from dataclasses import dataclass
-from typing import Any, Protocol
-
-
-@dataclass(frozen=True)
-class GraphNode:
-    id: str
-    type: str
-    attributes: dict[str, Any]
-    confidence: float
-
-
-@dataclass(frozen=True)
-class GraphEdge:
-    source: str
-    target: str
-    relationship: str
-    attributes: dict[str, Any]
-    confidence: float
-    evidence_ids: tuple[str, ...] = ()
-
+from typing import Protocol
+from .models import GraphEdge, GraphNode
 
 class GraphStore(Protocol):
-    """Read-only consumer contract plus controlled mutation primitives."""
-
     def add_node(self, node: GraphNode) -> None: ...
     def add_edge(self, edge: GraphEdge) -> None: ...
     def get_node(self, node_id: str) -> GraphNode | None: ...

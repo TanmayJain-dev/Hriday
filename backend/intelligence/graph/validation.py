@@ -1,8 +1,5 @@
 """Graph-level validation hooks."""
-from __future__ import annotations
-
-from .interfaces import GraphEdge
-
+from .models import GraphEdge
 
 def validate_edge(edge: GraphEdge) -> list[str]:
     errors: list[str] = []

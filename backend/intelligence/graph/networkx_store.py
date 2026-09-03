@@ -1,16 +1,13 @@
-"""Dependency-free directed graph store for the MVP."""
+"""Dependency-free directed graph store for the MVP.
+
+The interface is deliberately implementation-agnostic; this in-memory class is
+small enough for the prototype and can later be replaced by NetworkX or Neo4j.
+"""
 from __future__ import annotations
 from collections import deque
-from .interfaces import GraphEdge, GraphNode
-
+from .models import GraphEdge, GraphNode
 
 class NetworkXGraphStore:
-    """In-memory graph with deterministic traversal semantics.
-
-    Despite the class name, the MVP intentionally avoids requiring NetworkX;
-    the GraphStore interface lets a real NetworkX or Neo4j implementation be
-    introduced later without changing callers.
-    """
     def __init__(self) -> None:
         self._nodes: dict[str, GraphNode] = {}
         self._edges: list[GraphEdge] = []
