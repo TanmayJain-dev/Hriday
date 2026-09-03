@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+.next/
+out/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Local runtime data
+runtime/
+logs/
+tmp/
+*.sqlite
+*.sqlite3
+
+# Confidential industrial drawings — never commit real source material
+*.pid
+*.dwg
+*.dxf
+*.tiff
+*.tif
+*.bmp
