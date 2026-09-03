@@ -1,8 +1,4 @@
-"""Dependency-free directed graph store for the MVP.
-
-The interface is deliberately implementation-agnostic; this in-memory class is
-small enough for the prototype and can later be replaced by NetworkX or Neo4j.
-"""
+"""Dependency-free directed graph store for the MVP."""
 from __future__ import annotations
 from collections import deque
 from .models import GraphEdge, GraphNode
@@ -47,14 +43,11 @@ class NetworkXGraphStore:
                 continue
             current = path[-1]
             for edge in self._edges:
-                if direction == "downstream":
-                    if edge.source != current:
-                        continue
-                    nxt = edge.target
-                else:
-                    if edge.target != current:
-                        continue
-                    nxt = edge.source
+                if direction == "downstream" and edge.source != current:
+                    continue
+                if direction == "upstream" and edge.target != current:
+                    continue
+                nxt = edge.target if direction == "downstream" else edge.source
                 if nxt in path:
                     continue
                 next_path = [*path, nxt]
