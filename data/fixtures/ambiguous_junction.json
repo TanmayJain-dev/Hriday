@@ -1,0 +1,14 @@
+{
+  "document_id": "demo-ambiguous-001",
+  "entities": [
+    {"id": "P-101", "type": "pump"},
+    {"id": "V-104", "type": "vessel"}
+  ],
+  "candidate_edge": {
+    "source": "P-101",
+    "target": "V-104",
+    "confidence": 0.62,
+    "reason": "crossing_vs_junction_ambiguous",
+    "requires_verification": true
+  }
+}

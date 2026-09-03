@@ -1,0 +1,14 @@
+{
+  "document_id": "demo-branching-001",
+  "entities": [
+    {"id": "P-101", "type": "pump"},
+    {"id": "E-101", "type": "exchanger"},
+    {"id": "V-102", "type": "vessel"},
+    {"id": "V-103", "type": "vessel"}
+  ],
+  "edges": [
+    {"source": "P-101", "target": "E-101", "relationship": "FLOWS_TO", "confidence": 0.93},
+    {"source": "E-101", "target": "V-102", "relationship": "FLOWS_TO", "confidence": 0.91},
+    {"source": "E-101", "target": "V-103", "relationship": "FLOWS_TO", "confidence": 0.87}
+  ]
+}

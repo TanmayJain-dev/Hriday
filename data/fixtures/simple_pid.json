@@ -1,0 +1,14 @@
+{
+  "document_id": "demo-simple-001",
+  "entities": [
+    {"id": "V-101", "type": "vessel"},
+    {"id": "P-101", "type": "pump"},
+    {"id": "E-101", "type": "exchanger"},
+    {"id": "V-102", "type": "vessel"}
+  ],
+  "edges": [
+    {"source": "V-101", "target": "P-101", "relationship": "FLOWS_TO", "confidence": 0.98},
+    {"source": "P-101", "target": "E-101", "relationship": "FLOWS_TO", "confidence": 0.94},
+    {"source": "E-101", "target": "V-102", "relationship": "FLOWS_TO", "confidence": 0.96}
+  ]
+}
