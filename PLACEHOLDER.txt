@@ -1,0 +1,1 @@
+HRIDAY repository bootstrap complete. See README.md, AGENTS.md and ARCHITECTURE.md.
