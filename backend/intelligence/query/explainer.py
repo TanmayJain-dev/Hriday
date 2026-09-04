@@ -26,6 +26,10 @@ class FactGroundedAnswerExplainer:
                     return f"No upstream equipment found connected to {entity}."
                 if intent == "NEIGHBORS":
                     return f"No connected equipment found for {entity}."
+                if intent == "PATHS_BETWEEN":
+                    from .entity_resolution import extract_source_and_target
+                    src, tgt = extract_source_and_target(question)
+                    return f"No directed path found connecting {src or entity} to {tgt or 'target'}."
                 return f"No graph facts found for {entity}."
 
             # Collect reachable target equipment (excluding starting entity)
@@ -40,12 +44,17 @@ class FactGroundedAnswerExplainer:
             formatted_paths = [" -> ".join(p) for p in paths]
             targets_str = ", ".join(targets) if targets else "None"
 
+            if intent == "PATHS_BETWEEN":
+                from .entity_resolution import extract_source_and_target
+                src, tgt = extract_source_and_target(question)
+                return f"Path from {src or entity} to {tgt or 'target'}: {', '.join(formatted_paths)}."
             if intent == "DOWNSTREAM":
                 return f"Downstream of {entity}: {targets_str}. Paths: {', '.join(formatted_paths)}."
             if intent == "UPSTREAM":
                 return f"Upstream of {entity}: {targets_str}. Paths: {', '.join(formatted_paths)}."
             if intent == "NEIGHBORS":
                 return f"Directly connected to {entity}: {targets_str}."
+
 
             return f"Found {len(paths)} path(s) involving {entity}: {', '.join(formatted_paths)}."
 

@@ -268,3 +268,138 @@ def test_neighbors_query_semantics(sample_graph: NetworkXGraphStore):
 
     assert "Directly connected to P-101: E-101" in result.answer
     assert any(e["relationship"] == "CONNECTED_TO" for e in result.graph_result["edges"])
+
+
+def test_canonical_graph_path_consumption_and_provenance():
+    """Verifies Audit 1, 2 & 3: Consumes canonical GraphPath, weakest-link confidence, and evidence provenance."""
+    from dataclasses import dataclass, field
+
+    @dataclass(frozen=True)
+    class CanonicalTestPath:
+        nodes: tuple[str, ...]
+        edges: tuple[GraphEdge, ...] = ()
+        confidence: float = 1.0
+        evidence_ids: tuple[str, ...] = ()
+
+        def __post_init__(self):
+            if self.edges:
+                min_c = min(e.confidence for e in self.edges)
+                object.__setattr__(self, "confidence", round(min(self.confidence, min_c), 4))
+            if self.edges and not self.evidence_ids:
+                eids = []
+                for e in self.edges:
+                    for eid in getattr(e, "evidence_ids", ()):
+                        if eid not in eids:
+                            eids.append(eid)
+                object.__setattr__(self, "evidence_ids", tuple(eids))
+
+    class CanonicalGraphStoreMock:
+        def __init__(self):
+            self.nodes_dict = {
+                "P-101": GraphNode("P-101", "pump", confidence=0.98),
+                "E-101": GraphNode("E-101", "exchanger", confidence=0.95),
+                "V-102": GraphNode("V-102", "vessel", confidence=0.96),
+            }
+            self.edge1 = GraphEdge("P-101", "E-101", "FLOWS_TO", confidence=0.94, evidence_ids=("ev-101",))
+            self.edge2 = GraphEdge("E-101", "V-102", "FLOWS_TO", confidence=0.78, evidence_ids=("ev-102", "ev-103"))
+
+        def get_node(self, node_id: str):
+            return self.nodes_dict.get(node_id)
+
+        def get_edge(self, source: str, target: str, relationship: str | None = None):
+            for e in (self.edge1, self.edge2):
+                if e.source == source and e.target == target:
+                    if relationship is None or e.relationship == relationship:
+                        return e
+            return None
+
+        def downstream_paths(self, node_id: str, max_depth: int | None = None):
+            if node_id == "P-101":
+                p1 = CanonicalTestPath(nodes=("P-101", "E-101"), edges=(self.edge1,))
+                p2 = CanonicalTestPath(nodes=("P-101", "E-101", "V-102"), edges=(self.edge1, self.edge2))
+                return [p1, p2]
+            return []
+
+        def paths_between_detailed(self, source: str, target: str, max_depth: int | None = None):
+            if source == "P-101" and target == "V-102":
+                p = CanonicalTestPath(nodes=("P-101", "E-101", "V-102"), edges=(self.edge1, self.edge2))
+                return [p]
+            return []
+
+    graph = CanonicalGraphStoreMock()
+    engine = QueryEngine()
+
+    # 1. Downstream query directly consuming GraphPath
+    res = engine.query("What is downstream of P-101?", graph)
+    assert res.confidence == 0.78  # Weakest link across graph nodes & canonical path edges
+    assert res.verification["status"] == "required"
+    assert res.verification["reason"] == "low_confidence"
+    assert "ev-101" in res.evidence
+    assert "ev-102" in res.evidence
+    assert "ev-103" in res.evidence
+
+    # Edge provenance preserved
+    edge_entries = res.graph_result["edges"]
+    assert any(e["source"] == "P-101" and e["target"] == "E-101" and e["confidence"] == 0.94 for e in edge_entries)
+    assert any(e["source"] == "E-101" and e["target"] == "V-102" and e["confidence"] == 0.78 for e in edge_entries)
+
+
+def test_paths_between_valid_path():
+    """Verifies Audit 6: PATHS_BETWEEN between two known connected entities."""
+    class GraphWithPaths(NetworkXGraphStore):
+        def paths_between(self, source: str, target: str, max_depth: int | None = None):
+            if source == "P-101" and target == "V-102":
+                return [["P-101", "E-101", "V-102"]]
+            return []
+
+    g = GraphWithPaths()
+    g.add_node(GraphNode("P-101", "pump", confidence=0.96))
+    g.add_node(GraphNode("E-101", "exchanger", confidence=0.95))
+    g.add_node(GraphNode("V-102", "vessel", confidence=0.94))
+    g.add_edge(GraphEdge("P-101", "E-101", "FLOWS_TO", confidence=0.95))
+    g.add_edge(GraphEdge("E-101", "V-102", "FLOWS_TO", confidence=0.93))
+
+    engine = QueryEngine()
+    result = engine.query("What is the path between P-101 and V-102?", g)
+
+    assert "Path from P-101 to V-102: P-101 -> E-101 -> V-102" in result.answer
+    assert result.confidence >= 0.90
+    assert result.verification["status"] == "not_required"
+    assert len(result.graph_result["edges"]) == 2
+
+
+def test_paths_between_no_path():
+    """Verifies Audit 6: Disconnected entities yield clear unsupported explanation without fabricated edges."""
+    class GraphNoPath(NetworkXGraphStore):
+        def paths_between(self, source: str, target: str, max_depth: int | None = None):
+            return []
+
+    g = GraphNoPath()
+    g.add_node(GraphNode("P-101", "pump", confidence=0.95))
+    g.add_node(GraphNode("TK-900", "tank", confidence=0.95))
+
+    engine = QueryEngine()
+    result = engine.query("What is the path between P-101 and TK-900?", g)
+
+    assert "No directed path found connecting P-101 to TK-900" in result.answer
+    assert len(result.graph_result["edges"]) == 0
+
+
+def test_paths_between_unknown_source_and_target():
+    """Verifies Audit 5 & 6: Unknown entities in paths-between remain uncertain with confidence 0.0."""
+    g = NetworkXGraphStore()
+    g.add_node(GraphNode("P-101", "pump", confidence=0.95))
+
+    engine = QueryEngine()
+
+    # Unknown source
+    res_unknown_src = engine.query("What is the path between X-999 and P-101?", g)
+    assert res_unknown_src.confidence == 0.0
+    assert res_unknown_src.verification["status"] == "required"
+    assert any(n["id"] == "X-999" and n["type"] == "unknown" for n in res_unknown_src.graph_result["nodes"])
+
+    # Unknown target
+    res_unknown_tgt = engine.query("What is the path between P-101 and Y-999?", g)
+    assert res_unknown_tgt.confidence == 0.0
+    assert res_unknown_tgt.verification["status"] == "required"
+    assert any(n["id"] == "Y-999" and n["type"] == "unknown" for n in res_unknown_tgt.graph_result["nodes"])

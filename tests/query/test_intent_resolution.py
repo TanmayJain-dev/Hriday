@@ -79,3 +79,18 @@ def test_ambiguous_conflicting_intents_fail_safely(resolver: RuleBasedIntentReso
     # If a question ambiguously asks for both downstream and upstream
     with pytest.raises(ValueError, match="Could not determine a supported query intent"):
         resolver.resolve("What is downstream and upstream of P-101?")
+
+
+def test_paths_between_intent_resolution(resolver: RuleBasedIntentResolver):
+    q1 = "What is the path between P-101 and V-102?"
+    intent1 = resolver.resolve(q1)
+    assert intent1 == QueryIntent(intent="PATHS_BETWEEN", entity="P-101", target_entity="V-102", depth=None)
+
+    q2 = "How to get from pump 101 to vessel 102?"
+    intent2 = resolver.resolve(q2)
+    assert intent2.intent == "PATHS_BETWEEN"
+    assert intent2.entity == "P-101"
+    assert intent2.target_entity == "V-102"
+
+    with pytest.raises(ValueError, match="Paths-between query requires both source and target"):
+        resolver.resolve("What is the path between P-101?")

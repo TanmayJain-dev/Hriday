@@ -29,3 +29,44 @@ def extract_and_normalize_entity(text: str) -> str | None:
         return normalize_entity_reference(named_match.group(0))
 
     return None
+
+
+def extract_all_entities(text: str) -> list[str]:
+    """Extracts and normalizes all entity tags mentioned in text, preserving order."""
+    results: list[str] = []
+    seen: set[str] = set()
+
+    pattern = re.compile(
+        r"\b([A-Z]{1,4}-\d{1,4}[A-Z]?)\b|"
+        r"\b((?:PUMP|PMP|VESSEL|VSL|EXCHANGER|HX|VALVE|VLV|TANK|TK)\s*[- ]?\s*[A-Z0-9]+)\b",
+        re.IGNORECASE,
+    )
+    for match in pattern.finditer(text):
+        raw = match.group(1) or match.group(2)
+        if raw:
+            normalized = normalize_entity_reference(raw)
+            if normalized not in seen:
+                seen.add(normalized)
+                results.append(normalized)
+    return results
+
+
+def extract_source_and_target(text: str) -> tuple[str | None, str | None]:
+    """Extracts source and target entity references for paths-between queries."""
+    rel_match = re.search(
+        r"\b(?:between|from)\s+([A-Za-z0-9- ]+?)\s+(?:and|to)\s+([A-Za-z0-9- ]+)",
+        text,
+        re.IGNORECASE,
+    )
+    if rel_match:
+        src = extract_and_normalize_entity(rel_match.group(1))
+        tgt = extract_and_normalize_entity(rel_match.group(2))
+        if src and tgt:
+            return src, tgt
+
+    all_ents = extract_all_entities(text)
+    if len(all_ents) >= 2:
+        return all_ents[0], all_ents[1]
+    if len(all_ents) == 1:
+        return all_ents[0], None
+    return None, None

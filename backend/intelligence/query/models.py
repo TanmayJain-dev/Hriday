@@ -7,6 +7,7 @@ from typing import Any
 class QueryIntent:
     intent: str
     entity: str | None = None
+    target_entity: str | None = None
     depth: int | None = None
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class Answer:
     answer: str
     confidence: float
     graph_result: dict[str, Any] = field(default_factory=dict)
-    evidence: list[dict[str, Any]] = field(default_factory=list)
+    evidence: list[Any] = field(default_factory=list)
     verification: dict[str, Any] = field(default_factory=lambda: {"status": "not_required"})
 
     def to_dict(self) -> dict[str, Any]:

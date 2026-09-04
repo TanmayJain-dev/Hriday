@@ -31,12 +31,21 @@ _NEIGHBORS_PATTERNS = [
     re.compile(r"\blinked\s+to\b", re.IGNORECASE),
 ]
 
+_PATHS_BETWEEN_PATTERNS = [
+    re.compile(r"\bpaths?\s+(?:between|from)\b", re.IGNORECASE),
+    re.compile(r"\bhow\s+(?:to|does\s+flow)?\s*get\s+from\b", re.IGNORECASE),
+    re.compile(r"\broute\s+(?:between|from)\b", re.IGNORECASE),
+    re.compile(r"\bconnection\s+between\b", re.IGNORECASE),
+]
+
 _DEPTH_PATTERN = re.compile(r"\b(?:depth|hops?)\s*[:=]?\s*(\d+)\b|(\d+)\s*hops?\b", re.IGNORECASE)
 
 
 def detect_intent(text: str) -> str | None:
     """Detects supported intent from text or returns None if ambiguous/unsupported."""
     matches: list[str] = []
+    if any(p.search(text) for p in _PATHS_BETWEEN_PATTERNS):
+        matches.append("PATHS_BETWEEN")
     if any(p.search(text) for p in _DOWNSTREAM_PATTERNS):
         matches.append("DOWNSTREAM")
     if any(p.search(text) for p in _UPSTREAM_PATTERNS):
@@ -77,9 +86,19 @@ class RuleBasedIntentResolver:
         if intent is None:
             raise ValueError(f"Could not determine a supported query intent from question: {question!r}")
 
+        depth = extract_depth(question)
+
+        if intent == "PATHS_BETWEEN":
+            from .entity_resolution import extract_source_and_target
+            source, target = extract_source_and_target(question)
+            if not source or not target:
+                raise ValueError(
+                    f"Paths-between query requires both source and target entities in question: {question!r}"
+                )
+            return QueryIntent(intent="PATHS_BETWEEN", entity=source, target_entity=target, depth=depth)
+
         entity = extract_and_normalize_entity(question)
         if entity is None:
             raise ValueError(f"Could not identify a valid entity reference in question: {question!r}")
 
-        depth = extract_depth(question)
         return QueryIntent(intent=intent, entity=entity, depth=depth)

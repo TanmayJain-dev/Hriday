@@ -7,7 +7,17 @@ from .interfaces import AnswerExplainer, IntentResolver, ModelAdapter
 from .local_adapter import LocalModelAdapter
 from .models import Answer, GraphResult, QueryIntent
 from .planner import SUPPORTED_INTENTS, execute_intent
-from .read_only_tools import downstream, get_node, neighbors, upstream
+from .read_only_tools import (
+    downstream,
+    downstream_detailed,
+    get_edge,
+    get_node,
+    neighbors,
+    paths_between,
+    paths_between_detailed,
+    upstream,
+    upstream_detailed,
+)
 
 __all__ = [
     "Answer",
@@ -23,10 +33,15 @@ __all__ = [
     "SUPPORTED_INTENTS",
     "detect_intent",
     "downstream",
+    "downstream_detailed",
     "execute_intent",
     "extract_and_normalize_entity",
+    "get_edge",
     "get_node",
     "neighbors",
     "normalize_entity_reference",
+    "paths_between",
+    "paths_between_detailed",
     "upstream",
+    "upstream_detailed",
 ]

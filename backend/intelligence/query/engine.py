@@ -32,32 +32,75 @@ class QueryEngine:
         """Executes a natural language query against the read-only graph store.
 
         Pipeline:
-        1. Resolves query intent and normalizes entity from question.
-        2. Retrieves entity from graph (checking existence).
-        3. Executes read-only traversal on graph (never mutating graph facts).
+        1. Resolves query intent and normalizes entity (or entities) from question.
+        2. Retrieves entity from graph (checking existence; preserving uncertainty if missing).
+        3. Executes canonical read-only traversal (consuming GraphPath where available).
         4. Packages graph facts into GraphResult matching contracts/graph.schema.json.
         5. Synthesizes fact-grounded explanation.
-        6. Calculates confidence from the weakest returned fact (min).
-        7. Evaluates verification requirement.
+        6. Preserves canonical weakest-link confidence and evidence provenance.
+        7. Evaluates verification requirement against deterministic threshold (0.90).
         8. Assembles Answer matching contracts/answer.schema.json.
         """
         # Step 1: Intent & Entity Resolution
         intent = self.intent_resolver.resolve(question)
 
-        # Step 2 & 3: Retrieve entity & Read-Only Graph Traversal
-        node = graph.get_node(intent.entity) if intent.entity else None
-        if not node:
-            raw_paths: list[list[str]] = []
-        else:
-            raw_paths = execute_intent(graph, intent)
-
-        # Step 4: Structure GraphResult (contracts/graph.schema.json)
+        # Step 2 & 3: Read-Only Graph Traversal consuming canonical APIs
+        canonical_paths: list[Any] = []
+        raw_paths: list[list[str]] = []
         involved_node_ids: set[str] = set()
-        if intent.entity:
-            involved_node_ids.add(intent.entity)
+
+        if intent.intent == "PATHS_BETWEEN":
+            src_entity = intent.entity
+            tgt_entity = intent.target_entity
+            if src_entity:
+                involved_node_ids.add(src_entity)
+            if tgt_entity:
+                involved_node_ids.add(tgt_entity)
+
+            src_node = graph.get_node(src_entity) if src_entity else None
+            tgt_node = graph.get_node(tgt_entity) if tgt_entity else None
+
+            if src_node and tgt_node and src_entity and tgt_entity:
+                if hasattr(graph, "paths_between_detailed"):
+                    canonical_paths = graph.paths_between_detailed(src_entity, tgt_entity, intent.depth)
+                    raw_paths = [list(p.nodes) for p in canonical_paths]
+                elif hasattr(graph, "paths_between"):
+                    raw_paths = graph.paths_between(src_entity, tgt_entity, intent.depth)
+
+        elif intent.intent == "DOWNSTREAM":
+            if intent.entity:
+                involved_node_ids.add(intent.entity)
+            node = graph.get_node(intent.entity) if intent.entity else None
+            if node and intent.entity:
+                if hasattr(graph, "downstream_paths"):
+                    canonical_paths = graph.downstream_paths(intent.entity, intent.depth)
+                    raw_paths = [list(p.nodes) for p in canonical_paths]
+                else:
+                    raw_paths = execute_intent(graph, intent)
+
+        elif intent.intent == "UPSTREAM":
+            if intent.entity:
+                involved_node_ids.add(intent.entity)
+            node = graph.get_node(intent.entity) if intent.entity else None
+            if node and intent.entity:
+                if hasattr(graph, "upstream_paths"):
+                    canonical_paths = graph.upstream_paths(intent.entity, intent.depth)
+                    raw_paths = [list(p.nodes) for p in canonical_paths]
+                else:
+                    raw_paths = execute_intent(graph, intent)
+
+        elif intent.intent == "NEIGHBORS":
+            if intent.entity:
+                involved_node_ids.add(intent.entity)
+            node = graph.get_node(intent.entity) if intent.entity else None
+            if node and intent.entity:
+                raw_paths = execute_intent(graph, intent)
+
+        # Collect all involved nodes from discovered paths
         for path in raw_paths:
             involved_node_ids.update(path)
 
+        # Structure nodes_list with preserved node confidence
         nodes_list: list[dict[str, Any]] = []
         node_confs: list[float] = []
         for nid in sorted(involved_node_ids):
@@ -65,12 +108,15 @@ class QueryEngine:
             if n is not None:
                 n_conf = getattr(n, "confidence", None)
                 conf_val = float(n_conf) if n_conf is not None else 0.0
-                nodes_list.append({
+                node_entry: dict[str, Any] = {
                     "id": n.id,
                     "type": n.type,
                     "attributes": n.attributes,
                     "confidence": conf_val,
-                })
+                }
+                if getattr(n, "evidence_ids", None):
+                    node_entry["evidence_ids"] = list(n.evidence_ids)
+                nodes_list.append(node_entry)
                 node_confs.append(conf_val)
             else:
                 nodes_list.append({
@@ -81,45 +127,77 @@ class QueryEngine:
                 })
                 node_confs.append(0.0)
 
-        # Collect directed edges traversed in paths
+        # Structure edges_list, preserving canonical GraphEdge and GraphPath data
         edges_list: list[dict[str, Any]] = []
-        seen_edges: set[tuple[str, str]] = set()
+        seen_edges: set[tuple[str, str, str]] = set()
         edge_confs: list[float] = []
-        get_edge_fn = getattr(graph, "get_edge", None)
-        has_get_edge = callable(get_edge_fn)
+        evidence_ids_collected: list[str] = []
 
-        for path in raw_paths:
-            for i in range(len(path) - 1):
-                # Semantically correct relationship direction (Audit 8):
-                # Upstream traversal moves backwards from entity to upstream origins.
-                # The physical directed graph edge flows from path[i+1] to path[i].
-                if intent.intent == "UPSTREAM":
-                    src, tgt = path[i + 1], path[i]
-                else:
-                    src, tgt = path[i], path[i + 1]
+        if canonical_paths:
+            # Consume canonical GraphPath / GraphEdge objects directly
+            for p in canonical_paths:
+                if hasattr(p, "confidence") and p.confidence is not None:
+                    edge_confs.append(float(p.confidence))
+                if hasattr(p, "evidence_ids") and p.evidence_ids:
+                    for eid in p.evidence_ids:
+                        if eid not in evidence_ids_collected:
+                            evidence_ids_collected.append(eid)
+                for edge in getattr(p, "edges", ()):
+                    edge_key = (edge.source, edge.target, edge.relationship)
+                    if edge_key not in seen_edges:
+                        seen_edges.add(edge_key)
+                        edge_dict: dict[str, Any] = {
+                            "source": edge.source,
+                            "target": edge.target,
+                            "relationship": edge.relationship,
+                            "confidence": float(edge.confidence),
+                        }
+                        if getattr(edge, "evidence_ids", None):
+                            edge_dict["evidence_ids"] = list(edge.evidence_ids)
+                        edges_list.append(edge_dict)
+                        edge_confs.append(float(edge.confidence))
+        else:
+            # Fallback path traversal extracting edges and edge confidence safely
+            get_edge_fn = getattr(graph, "get_edge", None)
+            has_get_edge = callable(get_edge_fn)
 
-                edge_key = (src, tgt)
-                if edge_key not in seen_edges:
-                    seen_edges.add(edge_key)
-                    default_rel = "FLOWS_TO" if intent.intent in ("DOWNSTREAM", "UPSTREAM") else "CONNECTED_TO"
-                    edge_entry: dict[str, Any] = {
-                        "source": src,
-                        "target": tgt,
-                        "relationship": default_rel,
-                    }
+            for path in raw_paths:
+                for i in range(len(path) - 1):
+                    if intent.intent == "UPSTREAM":
+                        src, tgt = path[i + 1], path[i]
+                    else:
+                        src, tgt = path[i], path[i + 1]
 
-                    # Safely extract edge facts only if exposed through public method
-                    if has_get_edge:
-                        edge_obj = get_edge_fn(src, tgt)
-                        if edge_obj is not None:
-                            if hasattr(edge_obj, "relationship"):
-                                edge_entry["relationship"] = edge_obj.relationship
-                            if hasattr(edge_obj, "confidence") and edge_obj.confidence is not None:
-                                edge_conf = float(edge_obj.confidence)
-                                edge_entry["confidence"] = edge_conf
-                                edge_confs.append(edge_conf)
+                    default_rel = (
+                        "FLOWS_TO"
+                        if intent.intent in ("DOWNSTREAM", "UPSTREAM", "PATHS_BETWEEN")
+                        else "CONNECTED_TO"
+                    )
+                    edge_key = (src, tgt, default_rel)
+                    if edge_key not in seen_edges:
+                        seen_edges.add(edge_key)
+                        edge_entry: dict[str, Any] = {
+                            "source": src,
+                            "target": tgt,
+                            "relationship": default_rel,
+                        }
 
-                    edges_list.append(edge_entry)
+                        if has_get_edge:
+                            edge_obj = get_edge_fn(src, tgt)
+                            if edge_obj is not None:
+                                if hasattr(edge_obj, "relationship"):
+                                    edge_entry["relationship"] = edge_obj.relationship
+                                if hasattr(edge_obj, "confidence") and edge_obj.confidence is not None:
+                                    edge_conf = float(edge_obj.confidence)
+                                    edge_entry["confidence"] = edge_conf
+                                    edge_confs.append(edge_conf)
+                                if hasattr(edge_obj, "evidence_ids") and edge_obj.evidence_ids:
+                                    for eid in edge_obj.evidence_ids:
+                                        if eid not in evidence_ids_collected:
+                                            evidence_ids_collected.append(eid)
+                                    edge_entry["evidence_ids"] = list(edge_obj.evidence_ids)
+
+                        edges_list.append(edge_entry)
 
         graph_result = GraphResult(
             document_id=document_id,
@@ -130,8 +208,7 @@ class QueryEngine:
         # Step 5: Fact-Grounded Explanation
         text_answer = self.explainer.explain(question, raw_paths, evidence=None)
 
-        # Step 6: Confidence calculation (weakest returned fact)
-        # Combines all legitimately available facts (nodes and any exposed edges)
+        # Step 6: Confidence calculation (conservative weakest link across facts)
         all_confs = node_confs + edge_confs
         confidence = min(all_confs) if all_confs else 0.0
 
@@ -147,6 +224,6 @@ class QueryEngine:
             answer=text_answer,
             confidence=confidence,
             graph_result=graph_result.to_dict(),
-            evidence=[],
+            evidence=list(evidence_ids_collected),
             verification=verification,
         )
