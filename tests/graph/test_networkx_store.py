@@ -51,9 +51,9 @@ def test_cycle_prevention():
     graph.add_node(GraphNode("N-2", "node"))
     graph.add_node(GraphNode("N-3", "node"))
     # Introduce cycle: N-1 -> N-2 -> N-3 -> N-1
-    graph.add_edge(GraphEdge("N-1", "N-2"))
-    graph.add_edge(GraphEdge("N-2", "N-3"))
-    graph.add_edge(GraphEdge("N-3", "N-1"))
+    graph.add_edge(GraphEdge("N-1", "N-2", confidence=1.0))
+    graph.add_edge(GraphEdge("N-2", "N-3", confidence=1.0))
+    graph.add_edge(GraphEdge("N-3", "N-1", confidence=1.0))
 
     # Downstream should terminate without infinite loop
     paths = graph.downstream("N-1")

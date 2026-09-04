@@ -215,8 +215,8 @@ def test_weak_node_in_middle_lowers_confidence():
     graph.add_node(GraphNode("A-101", "pump", confidence=0.95))
     graph.add_node(GraphNode("B-101", "exchanger", confidence=0.65))
     graph.add_node(GraphNode("C-101", "vessel", confidence=0.92))
-    graph.add_edge(GraphEdge("A-101", "B-101", "FLOWS_TO"))
-    graph.add_edge(GraphEdge("B-101", "C-101", "FLOWS_TO"))
+    graph.add_edge(GraphEdge("A-101", "B-101", "FLOWS_TO", confidence=1.0))
+    graph.add_edge(GraphEdge("B-101", "C-101", "FLOWS_TO", confidence=1.0))
 
     engine = QueryEngine()
     result = engine.query("What is downstream of A-101?", graph)

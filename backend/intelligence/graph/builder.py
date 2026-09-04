@@ -93,14 +93,28 @@ def build_graph_with_uncertainties(
             })
             continue
 
+        # Provenance invariant: a confirmed edge must have evidence/rule provenance
+        raw_evidence = edge.get("evidence_ids")
+        if not raw_evidence:
+            uncertainties.append({
+                "source": source,
+                "target": target,
+                "relationship": relationship,
+                "confidence": conf,
+                "reason": "missing_provenance",
+                "requires_verification": True,
+                "evidence_ids": [],
+            })
+            continue
+
         # Confirmed fact: persist edge
         store.add_edge(GraphEdge(
             source=source,
             target=target,
             relationship=relationship,
-            attributes=dict(edge.get("attributes", {})),
             confidence=conf,
-            evidence_ids=tuple(edge.get("evidence_ids", ())),
+            attributes=dict(edge.get("attributes", {})),
+            evidence_ids=tuple(raw_evidence),
         ))
 
     return store, uncertainties

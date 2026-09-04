@@ -38,15 +38,36 @@ class GraphNode:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class GraphEdge:
     """Canonical representation of a directed relationship between two entities."""
     source: str
     target: str
-    relationship: str = "CONNECTED_TO"
-    attributes: dict[str, Any] = field(default_factory=dict)
-    confidence: float = 1.0
-    evidence_ids: tuple[str, ...] = ()
+    relationship: str
+    confidence: float
+    attributes: dict[str, Any]
+    evidence_ids: tuple[str, ...]
+
+    def __init__(
+        self,
+        source: str,
+        target: str,
+        relationship: str = "CONNECTED_TO",
+        confidence: float | None = None,
+        attributes: dict[str, Any] | None = None,
+        evidence_ids: tuple[str, ...] = (),
+    ) -> None:
+        if confidence is None:
+            raise ValueError(
+                f"GraphEdge({source!r}, {target!r}) requires explicit confidence; "
+                "silent confidence=1.0 defaults are prohibited."
+            )
+        object.__setattr__(self, "source", str(source))
+        object.__setattr__(self, "target", str(target))
+        object.__setattr__(self, "relationship", str(relationship))
+        object.__setattr__(self, "confidence", float(confidence))
+        object.__setattr__(self, "attributes", dict(attributes or {}))
+        object.__setattr__(self, "evidence_ids", tuple(evidence_ids))
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -63,13 +84,16 @@ class GraphEdge:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> GraphEdge:
-        conf_val = data.get("confidence")
+        if "confidence" not in data or data["confidence"] is None:
+            raise ValueError(
+                f"GraphEdge serialization requires explicit 'confidence': {data}"
+            )
         return cls(
             source=str(data["source"]),
             target=str(data["target"]),
             relationship=str(data.get("relationship", "CONNECTED_TO")),
+            confidence=float(data["confidence"]),
             attributes=dict(data.get("attributes", {})),
-            confidence=float(conf_val) if conf_val is not None else 0.0,
             evidence_ids=tuple(data.get("evidence_ids", ())),
         )
 

@@ -104,3 +104,27 @@ def test_missing_edge_confidence_routes_to_uncertainties():
     assert uncertainties[0]["target"] == "V-101"
     assert uncertainties[0]["requires_verification"] is True
     assert uncertainties[0]["reason"] == "missing_confidence"
+
+
+def test_confirmed_edge_without_evidence_routes_to_uncertainties():
+    """Confirmed edge (high confidence) with empty evidence_ids must route to uncertainties."""
+    topology = {
+        "document_id": "test-doc-no-evidence",
+        "nodes": [{"id": "P-101", "type": "pump"}, {"id": "V-101", "type": "vessel"}],
+        "edges": [
+            {
+                "source": "P-101",
+                "target": "V-101",
+                "relationship": "FLOWS_TO",
+                "confidence": 0.95,
+                "evidence_ids": [],
+            }
+        ],
+    }
+    store, uncertainties = build_graph_with_uncertainties(topology)
+    assert len(store.all_edges()) == 0
+    assert len(uncertainties) == 1
+    assert uncertainties[0]["source"] == "P-101"
+    assert uncertainties[0]["target"] == "V-101"
+    assert uncertainties[0]["requires_verification"] is True
+    assert uncertainties[0]["reason"] == "missing_provenance"

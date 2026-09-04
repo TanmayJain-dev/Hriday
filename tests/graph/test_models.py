@@ -138,8 +138,32 @@ def test_graph_path_explicit_evidence_always_includes_edge_evidence():
 
 def test_graph_models_eliminate_silent_one_dot_zero_confidence_defaults():
     """Missing confidence in dictionary serialization must never silently default to 1.0."""
-    edge = GraphEdge.from_dict({"source": "A", "target": "B"})
-    assert edge.confidence == 0.0
+    try:
+        GraphEdge.from_dict({"source": "A", "target": "B"})
+        assert False, "Expected ValueError when confidence is omitted from serialized edge data"
+    except ValueError as ex:
+        assert "requires explicit 'confidence'" in str(ex)
+
+    valid_edge = GraphEdge.from_dict({"source": "A", "target": "B", "confidence": 0.75})
+    assert valid_edge.confidence == 0.75
 
     node = GraphNode.from_dict({"id": "V-100", "type": "vessel"})
     assert node.confidence is None
+
+
+def test_graph_edge_constructor_requires_explicit_confidence():
+    """GraphEdge constructor must require explicit confidence and reject None or omitted confidence."""
+    try:
+        GraphEdge("A", "B")  # type: ignore[call-arg]
+        assert False, "Expected ValueError when confidence is omitted in GraphEdge"
+    except ValueError as ex:
+        assert "requires explicit confidence" in str(ex)
+
+    try:
+        GraphEdge("A", "B", confidence=None)
+        assert False, "Expected ValueError when confidence is None in GraphEdge"
+    except ValueError as ex:
+        assert "requires explicit confidence" in str(ex)
+
+    edge = GraphEdge("A", "B", confidence=0.88)
+    assert edge.confidence == 0.88
