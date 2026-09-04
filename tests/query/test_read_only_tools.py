@@ -4,6 +4,7 @@ from backend.intelligence.graph.networkx_store import NetworkXGraphStore
 from backend.intelligence.query.read_only_tools import (
     downstream,
     downstream_detailed,
+    get_edge,
     get_node,
     neighbors,
     paths_between,
@@ -66,3 +67,26 @@ def test_neighbors_and_get_node_tools():
     assert node.attributes["role"] == "feed"
 
     assert get_node(g, "NON-EXISTENT") is None
+
+
+def test_get_edge_tool():
+    g = make_test_graph()
+
+    # Existence & attributes
+    edge = get_edge(g, "V-101", "P-101")
+    assert edge is not None
+    assert edge.source == "V-101"
+    assert edge.target == "P-101"
+    assert edge.relationship == "FLOWS_TO"
+
+    # Missing edge
+    assert get_edge(g, "V-101", "V-102") is None
+    assert get_edge(g, "NON-EXISTENT", "P-101") is None
+
+    # Relationship filtering
+    assert get_edge(g, "V-101", "P-101", relationship="FLOWS_TO") is not None
+    assert get_edge(g, "V-101", "P-101", relationship="INCORRECT_REL") is None
+
+    # Confidence and evidence
+    assert edge.confidence == 0.98
+    assert edge.evidence_ids == ("ev-1",)

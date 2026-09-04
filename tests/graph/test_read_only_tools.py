@@ -4,6 +4,7 @@ from backend.intelligence.graph.networkx_store import NetworkXGraphStore
 from backend.intelligence.graph.read_only_tools import (
     downstream,
     downstream_detailed,
+    get_edge,
     get_node,
     neighbors,
     paths_between,
@@ -63,3 +64,36 @@ def test_canonical_neighbors_and_get_node():
     assert node.attributes["role"] == "feed"
 
     assert get_node(g, "NON_EXISTENT") is None
+
+
+def test_canonical_get_edge():
+    g = make_canonical_graph()
+
+    # 1. Existence
+    edge = get_edge(g, "V-101", "P-101")
+    assert edge is not None
+    assert edge.source == "V-101"
+    assert edge.target == "P-101"
+    assert edge.relationship == "FLOWS_TO"
+
+    # 2. Missing edge (non-adjacent nodes or non-existent nodes)
+    assert get_edge(g, "V-101", "V-102") is None
+    assert get_edge(g, "NON_EXISTENT", "P-101") is None
+    assert get_edge(g, "V-101", "NON_EXISTENT") is None
+
+    # 3. Relationship filtering
+    matching_edge = get_edge(g, "V-101", "P-101", relationship="FLOWS_TO")
+    assert matching_edge is not None
+    assert matching_edge.relationship == "FLOWS_TO"
+    mismatch_edge = get_edge(g, "V-101", "P-101", relationship="SIGNAL_TO")
+    assert mismatch_edge is None
+
+    # 4. Confidence propagation
+    assert edge.confidence == 0.98
+    edge_p101_e101 = get_edge(g, "P-101", "E-101")
+    assert edge_p101_e101 is not None
+    assert edge_p101_e101.confidence == 0.94
+
+    # 5. Provenance / evidence IDs
+    assert edge.evidence_ids == ("ev-1",)
+    assert edge_p101_e101.evidence_ids == ("ev-2",)

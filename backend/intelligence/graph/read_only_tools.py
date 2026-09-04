@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .interfaces import GraphStore
-    from .models import GraphNode, GraphPath
+    from .models import GraphEdge, GraphNode, GraphPath
 
 __all__ = [
     "downstream",
@@ -16,6 +16,7 @@ __all__ = [
     "paths_between",
     "neighbors",
     "get_node",
+    "get_edge",
     "downstream_detailed",
     "upstream_detailed",
     "paths_between_detailed",
@@ -54,6 +55,16 @@ def neighbors(
 def get_node(graph: GraphStore, entity: str) -> GraphNode | None:
     """Retrieve node details for the specified entity, or None if not found."""
     return graph.get_node(entity)
+
+
+def get_edge(
+    graph: GraphStore,
+    source: str,
+    target: str,
+    relationship: str | None = None,
+) -> GraphEdge | None:
+    """Retrieve directed edge details between source and target, or None if not found."""
+    return graph.get_edge(source, target, relationship)
 
 
 def downstream_detailed(

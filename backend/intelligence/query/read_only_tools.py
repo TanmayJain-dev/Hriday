@@ -6,6 +6,7 @@ This module preserves complete backward compatibility for query layer consumers.
 from backend.intelligence.graph.read_only_tools import (
     downstream,
     downstream_detailed,
+    get_edge,
     get_node,
     neighbors,
     paths_between,
@@ -20,6 +21,7 @@ __all__ = [
     "paths_between",
     "neighbors",
     "get_node",
+    "get_edge",
     "downstream_detailed",
     "upstream_detailed",
     "paths_between_detailed",
