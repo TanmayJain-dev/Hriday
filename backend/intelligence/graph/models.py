@@ -80,9 +80,9 @@ class GraphPath:
     evidence_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if self.edges and self.confidence == 1.0:
-            min_conf = min(e.confidence for e in self.edges)
-            object.__setattr__(self, "confidence", round(min_conf, 4))
+        if self.edges:
+            min_edge_conf = min(e.confidence for e in self.edges)
+            object.__setattr__(self, "confidence", round(min(self.confidence, min_edge_conf), 4))
         if self.edges and not self.evidence_ids:
             seen_evidence: list[str] = []
             for edge in self.edges:

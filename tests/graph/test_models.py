@@ -77,3 +77,47 @@ def test_graph_result_schema_conformance():
     assert len(d["edges"]) == 1
     restored = GraphResult.from_dict(d)
     assert restored.document_id == res.document_id
+
+
+def test_graph_path_default_confidence_with_edges():
+    """Default confidence (1.0) must drop to weakest edge."""
+    e1 = GraphEdge("A", "B", confidence=0.92, evidence_ids=("ev-1",))
+    e2 = GraphEdge("B", "C", confidence=0.74, evidence_ids=("ev-2",))
+    path = GraphPath(nodes=("A", "B", "C"), edges=(e1, e2))
+    assert path.confidence == 0.74
+
+
+def test_graph_path_explicit_confidence_higher_than_weakest_edge_is_capped():
+    """Explicit confidence higher than weakest edge must be capped at weakest edge."""
+    e1 = GraphEdge("A", "B", confidence=0.95, evidence_ids=("ev-1",))
+    e2 = GraphEdge("B", "C", confidence=0.60, evidence_ids=("ev-2",))
+    # User tries to assert 0.95 confidence on a path with a 0.60 edge
+    path = GraphPath(nodes=("A", "B", "C"), edges=(e1, e2), confidence=0.95)
+    assert path.confidence == 0.60
+
+
+def test_graph_path_explicit_confidence_lower_than_weakest_edge_is_preserved():
+    """Explicit confidence lower than weakest edge must not be upgraded."""
+    e1 = GraphEdge("A", "B", confidence=0.95, evidence_ids=("ev-1",))
+    e2 = GraphEdge("B", "C", confidence=0.90, evidence_ids=("ev-2",))
+    # Prior or external uncertainty lowered path to 0.50
+    path = GraphPath(nodes=("A", "B", "C"), edges=(e1, e2), confidence=0.50)
+    assert path.confidence == 0.50
+
+
+def test_graph_path_multi_edge_weakest_link_and_provenance():
+    """Multi-edge path respects weakest link and preserves ordered, deduplicated provenance."""
+    e1 = GraphEdge("A", "B", confidence=0.99, evidence_ids=("ev-1", "ev-shared"))
+    e2 = GraphEdge("B", "C", confidence=0.33, evidence_ids=("ev-2", "ev-shared"))
+    e3 = GraphEdge("C", "D", confidence=0.85, evidence_ids=("ev-3",))
+    path = GraphPath(nodes=("A", "B", "C", "D"), edges=(e1, e2, e3))
+    assert path.confidence == 0.33
+    assert path.evidence_ids == ("ev-1", "ev-shared", "ev-2", "ev-3")
+    assert path.to_string() == "A -> B -> C -> D"
+
+
+def test_graph_path_no_edges_retains_assigned_confidence():
+    """Single-node or 0-edge path retains its assigned confidence."""
+    path = GraphPath(nodes=("A",), edges=(), confidence=0.85)
+    assert path.confidence == 0.85
+    assert path.evidence_ids == ()
