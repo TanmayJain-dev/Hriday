@@ -1,7 +1,28 @@
-"""Read-only graph tool surface available to the local agent."""
+"""Compatibility re-export layer for read-only graph tools.
 
-def downstream(graph, entity: str, depth: int | None = None):
-    return graph.downstream(entity, depth)
+Canonical implementation is owned by Member 1 in backend.intelligence.graph.read_only_tools.
+This module preserves complete backward compatibility for query layer consumers.
+"""
+from backend.intelligence.graph.read_only_tools import (
+    downstream,
+    downstream_detailed,
+    get_edge,
+    get_node,
+    neighbors,
+    paths_between,
+    paths_between_detailed,
+    upstream,
+    upstream_detailed,
+)
 
-def upstream(graph, entity: str, depth: int | None = None):
-    return graph.upstream(entity, depth)
+__all__ = [
+    "downstream",
+    "upstream",
+    "paths_between",
+    "neighbors",
+    "get_node",
+    "get_edge",
+    "downstream_detailed",
+    "upstream_detailed",
+    "paths_between_detailed",
+]
