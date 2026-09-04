@@ -14,7 +14,7 @@ def validate_node(node: GraphNode) -> list[str]:
         errors.append("empty_node_id")
     if not node.type or not str(node.type).strip():
         errors.append("empty_node_type")
-    if not 0.0 <= node.confidence <= 1.0:
+    if node.confidence is not None and not 0.0 <= node.confidence <= 1.0:
         errors.append("confidence_out_of_range")
     return errors
 

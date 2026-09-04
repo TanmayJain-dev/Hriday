@@ -1,8 +1,8 @@
 """End-to-end integration tests for the HRIDAY pipeline."""
 import json
 from pathlib import Path
-from backend.intelligence.graph.builder import build_graph
-from backend.orchestration.pipeline import Pipeline, PipelineStageResult
+from backend.intelligence.graph.builder import build_graph, build_graph_with_uncertainties
+from backend.orchestration.pipeline import Pipeline
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,16 +45,9 @@ def test_pipeline_process_with_provenance_and_uncertainties():
     fixture_path = ROOT / "data/fixtures/ambiguous_junction.json"
     data = json.loads(fixture_path.read_text(encoding="utf-8"))
 
-    pipeline = Pipeline(
-        ingestion=DummyIngestion(),
-        extraction=DummyExtraction(),
-        topology=DummyTopology(),
-        graph_builder=build_graph,
-    )
-
-    result: PipelineStageResult = pipeline.process_with_provenance(data)
-    assert result.document_id == "demo-ambiguous-001"
-    assert len(result.uncertainties) == 1
-    assert result.uncertainties[0]["reason"] == "crossing_vs_junction_ambiguous"
-    assert result.graph_dict["document_id"] == "demo-ambiguous-001"
-    assert result.graph_dict["edges"] == []
+    store, uncertainties = build_graph_with_uncertainties(data)
+    assert len(uncertainties) == 1
+    assert uncertainties[0]["reason"] == "crossing_vs_junction_ambiguous"
+    graph_dict = store.to_dict("demo-ambiguous-001")
+    assert graph_dict["document_id"] == "demo-ambiguous-001"
+    assert graph_dict["edges"] == []

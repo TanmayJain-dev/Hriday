@@ -33,11 +33,12 @@ def build_graph_with_uncertainties(
     # 2. Extract nodes (support both 'nodes' and 'entities' schema variants)
     raw_nodes = topology.get("nodes") or topology.get("entities") or []
     for node in raw_nodes:
+        raw_conf = node.get("confidence")
         graph_node = GraphNode(
             id=str(node["id"]),
             type=str(node.get("type", "unknown")),
             attributes=dict(node.get("attributes", {})),
-            confidence=float(node.get("confidence", 1.0)),
+            confidence=float(raw_conf) if raw_conf is not None else None,
             evidence_ids=tuple(node.get("evidence_ids", ())),
         )
         store.add_node(graph_node)
@@ -45,29 +46,46 @@ def build_graph_with_uncertainties(
     # 3. Extract edges, gating on verification flags, endpoint existence, and confidence
     raw_edges = topology.get("edges", [])
     for edge in raw_edges:
-        conf = float(edge.get("confidence", 1.0))
+        raw_conf = edge.get("confidence")
         requires_verification = bool(edge.get("requires_verification", False))
         source = str(edge.get("source", ""))
         target = str(edge.get("target", ""))
+        relationship = str(edge.get("relationship", "CONNECTED_TO"))
 
         # Check endpoints exist
         if not store.get_node(source) or not store.get_node(target):
+            conf = float(raw_conf) if raw_conf is not None else 0.0
             uncertainties.append({
                 "source": source,
                 "target": target,
-                "relationship": edge.get("relationship", "CONNECTED_TO"),
+                "relationship": relationship,
                 "confidence": conf,
                 "reason": "missing_endpoint_node",
                 "requires_verification": True,
             })
             continue
 
+        # Missing extraction/topology confidence cannot silently become 1.0 certainty
+        if raw_conf is None:
+            uncertainties.append({
+                "source": source,
+                "target": target,
+                "relationship": relationship,
+                "confidence": 0.0,
+                "reason": "missing_confidence",
+                "requires_verification": True,
+                "evidence_ids": list(edge.get("evidence_ids", [])),
+            })
+            continue
+
+        conf = float(raw_conf)
+
         # Check confidence gate and verification flag
         if requires_verification or conf < confidence_threshold:
             uncertainties.append({
                 "source": source,
                 "target": target,
-                "relationship": edge.get("relationship", "CONNECTED_TO"),
+                "relationship": relationship,
                 "confidence": conf,
                 "reason": edge.get("reason", "low_confidence" if conf < confidence_threshold else "verification_required"),
                 "requires_verification": True,
@@ -79,7 +97,7 @@ def build_graph_with_uncertainties(
         store.add_edge(GraphEdge(
             source=source,
             target=target,
-            relationship=str(edge.get("relationship", "CONNECTED_TO")),
+            relationship=relationship,
             attributes=dict(edge.get("attributes", {})),
             confidence=conf,
             evidence_ids=tuple(edge.get("evidence_ids", ())),

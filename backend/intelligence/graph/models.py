@@ -10,15 +10,16 @@ class GraphNode:
     id: str
     type: str
     attributes: dict[str, Any] = field(default_factory=dict)
-    confidence: float = 1.0
+    confidence: float | None = None
     evidence_ids: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
             "id": self.id,
             "type": self.type,
-            "confidence": self.confidence,
         }
+        if self.confidence is not None:
+            result["confidence"] = self.confidence
         if self.attributes:
             result["attributes"] = dict(self.attributes)
         if self.evidence_ids:
@@ -27,11 +28,12 @@ class GraphNode:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> GraphNode:
+        conf_val = data.get("confidence")
         return cls(
             id=str(data["id"]),
             type=str(data.get("type", "unknown")),
             attributes=dict(data.get("attributes", {})),
-            confidence=float(data.get("confidence", 1.0)),
+            confidence=float(conf_val) if conf_val is not None else None,
             evidence_ids=tuple(data.get("evidence_ids", ())),
         )
 
@@ -61,12 +63,13 @@ class GraphEdge:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> GraphEdge:
+        conf_val = data.get("confidence")
         return cls(
             source=str(data["source"]),
             target=str(data["target"]),
             relationship=str(data.get("relationship", "CONNECTED_TO")),
             attributes=dict(data.get("attributes", {})),
-            confidence=float(data.get("confidence", 1.0)),
+            confidence=float(conf_val) if conf_val is not None else 0.0,
             evidence_ids=tuple(data.get("evidence_ids", ())),
         )
 
@@ -83,8 +86,8 @@ class GraphPath:
         if self.edges:
             min_edge_conf = min(e.confidence for e in self.edges)
             object.__setattr__(self, "confidence", round(min(self.confidence, min_edge_conf), 4))
-        if self.edges and not self.evidence_ids:
-            seen_evidence: list[str] = []
+            # Harden provenance aggregation: edge evidence is always included
+            seen_evidence: list[str] = list(self.evidence_ids)
             for edge in self.edges:
                 for eid in edge.evidence_ids:
                     if eid not in seen_evidence:

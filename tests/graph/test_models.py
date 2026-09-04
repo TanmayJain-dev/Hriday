@@ -121,3 +121,25 @@ def test_graph_path_no_edges_retains_assigned_confidence():
     path = GraphPath(nodes=("A",), edges=(), confidence=0.85)
     assert path.confidence == 0.85
     assert path.evidence_ids == ()
+
+
+def test_graph_path_explicit_evidence_always_includes_edge_evidence():
+    """Hardened provenance: edge evidence is always included even if caller supplies evidence_ids."""
+    e1 = GraphEdge("A", "B", confidence=0.90, evidence_ids=("edge-ev-1",))
+    e2 = GraphEdge("B", "C", confidence=0.85, evidence_ids=("edge-ev-2",))
+    path = GraphPath(
+        nodes=("A", "B", "C"),
+        edges=(e1, e2),
+        evidence_ids=("initial-ev-0",),
+    )
+    # Both initial and edge evidence must be present, deduplicated, and in order
+    assert path.evidence_ids == ("initial-ev-0", "edge-ev-1", "edge-ev-2")
+
+
+def test_graph_models_eliminate_silent_one_dot_zero_confidence_defaults():
+    """Missing confidence in dictionary serialization must never silently default to 1.0."""
+    edge = GraphEdge.from_dict({"source": "A", "target": "B"})
+    assert edge.confidence == 0.0
+
+    node = GraphNode.from_dict({"id": "V-100", "type": "vessel"})
+    assert node.confidence is None
