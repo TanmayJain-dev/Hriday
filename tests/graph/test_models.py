@@ -167,3 +167,38 @@ def test_graph_edge_constructor_requires_explicit_confidence():
 
     edge = GraphEdge("A", "B", confidence=0.88)
     assert edge.confidence == 0.88
+
+
+def test_graph_edge_positional_parameter_order_and_confidence():
+    """GraphEdge must preserve original positional ordering:
+    source, target, relationship, attributes, confidence, evidence_ids
+    while still enforcing that confidence is explicitly provided."""
+    # 1. Full positional construction with original argument ordering
+    edge = GraphEdge(
+        "P-101",
+        "E-101",
+        "FLOWS_TO",
+        {"line_size": "6-inch"},
+        0.95,
+        ("ev-101",),
+    )
+    assert edge.source == "P-101"
+    assert edge.target == "E-101"
+    assert edge.relationship == "FLOWS_TO"
+    assert edge.attributes == {"line_size": "6-inch"}
+    assert edge.confidence == 0.95
+    assert edge.evidence_ids == ("ev-101",)
+
+    # 2. Positional construction up to attributes (omitting confidence -> None) raises ValueError
+    try:
+        GraphEdge("P-101", "E-101", "FLOWS_TO", {"line_size": "6-inch"})  # type: ignore[call-arg]
+        assert False, "Expected ValueError when positional confidence is omitted"
+    except ValueError as ex:
+        assert "requires explicit confidence" in str(ex)
+
+    # 3. Explicit positional None confidence raises ValueError
+    try:
+        GraphEdge("P-101", "E-101", "FLOWS_TO", {"line_size": "6-inch"}, None)  # type: ignore[arg-type]
+        assert False, "Expected ValueError when positional confidence is None"
+    except ValueError as ex:
+        assert "requires explicit confidence" in str(ex)

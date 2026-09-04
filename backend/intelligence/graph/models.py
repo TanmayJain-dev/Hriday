@@ -44,8 +44,8 @@ class GraphEdge:
     source: str
     target: str
     relationship: str
-    confidence: float
     attributes: dict[str, Any]
+    confidence: float
     evidence_ids: tuple[str, ...]
 
     def __init__(
@@ -53,8 +53,8 @@ class GraphEdge:
         source: str,
         target: str,
         relationship: str = "CONNECTED_TO",
-        confidence: float | None = None,
         attributes: dict[str, Any] | None = None,
+        confidence: float | None = None,
         evidence_ids: tuple[str, ...] = (),
     ) -> None:
         if confidence is None:
@@ -65,8 +65,8 @@ class GraphEdge:
         object.__setattr__(self, "source", str(source))
         object.__setattr__(self, "target", str(target))
         object.__setattr__(self, "relationship", str(relationship))
-        object.__setattr__(self, "confidence", float(confidence))
         object.__setattr__(self, "attributes", dict(attributes or {}))
+        object.__setattr__(self, "confidence", float(confidence))
         object.__setattr__(self, "evidence_ids", tuple(evidence_ids))
 
     def to_dict(self) -> dict[str, Any]:
