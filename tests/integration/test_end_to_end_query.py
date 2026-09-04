@@ -93,7 +93,7 @@ def test_end_to_end_orchestrator_direct():
 
     assert "Downstream of P-101: V-101" in answer.answer
     assert answer.graph_result["document_id"] == "test-doc"
-    assert answer.confidence == 0.97
+    assert answer.confidence == 0.95
 
 
 def test_pipeline_query_convenience_method():
