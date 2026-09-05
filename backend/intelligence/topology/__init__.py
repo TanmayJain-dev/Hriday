@@ -1,4 +1,9 @@
 from .interfaces import TopologyProvider
+from .connectivity import (
+	EndpointMatch,
+	EndpointMatchingConfig,
+	reconstruct_endpoint_connectivity,
+)
 from .geometry import (
 	DEFAULT_GEOMETRY_TOLERANCE,
 	IntersectionKind,
@@ -15,6 +20,8 @@ from .models import TopologyEdge, TopologyNode, TopologyResult
 
 __all__ = [
 	"DEFAULT_GEOMETRY_TOLERANCE",
+	"EndpointMatch",
+	"EndpointMatchingConfig",
 	"IntersectionKind",
 	"SegmentIntersection",
 	"TopologyEdge",
@@ -27,5 +34,6 @@ __all__ = [
 	"point_on_segment",
 	"point_to_segment_distance",
 	"points_close",
+	"reconstruct_endpoint_connectivity",
 	"segments_collinear",
 ]
