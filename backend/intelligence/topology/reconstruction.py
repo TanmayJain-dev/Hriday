@@ -6,7 +6,7 @@ import json
 import math
 from typing import Any
 
-from backend.intelligence.extraction.models import ExtractionResult
+from .models import ExtractionResult
 
 from .connectivity import EndpointMatchingConfig, reconstruct_endpoint_connectivity
 from .crossings import (

@@ -1,5 +1,5 @@
 import backend.intelligence.topology as topology
-from backend.intelligence.extraction.models import ExtractionResult, LineCandidate, Point
+from backend.intelligence.topology.models import ExtractionResult, LineCandidate, Point
 from backend.intelligence.topology.reconstruction import (
     DeterministicTopologyReconstructor,
     TopologyReconstructionConfig,

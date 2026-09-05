@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import math
 from typing import Any
 
-from backend.intelligence.extraction.models import ExtractionResult
+from .models import ExtractionResult
 
 from .geometry import distance, points_close
 from .models import TopologyEdge, TopologyNode, TopologyResult

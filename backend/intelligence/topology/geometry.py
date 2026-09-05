@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 import math
 
-from backend.intelligence.extraction.models import Point
+from .models import Point
 
 
 # This is a coordinate-space numerical tolerance, not a drawing/pixel tolerance.

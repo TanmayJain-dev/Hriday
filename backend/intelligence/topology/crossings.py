@@ -6,7 +6,7 @@ from enum import Enum
 import math
 from typing import Any
 
-from backend.intelligence.extraction.models import ExtractionResult, LineCandidate, Point
+from .models import ExtractionResult, LineCandidate, Point
 
 from .geometry import IntersectionKind, intersect_segments, points_close
 from .junctions import JunctionMatchingConfig, reconstruct_junctions

@@ -1,4 +1,4 @@
-from backend.intelligence.extraction.models import Point
+from backend.intelligence.topology.models import Point
 from backend.intelligence.topology.geometry import (
     IntersectionKind,
     closest_segment_endpoint,

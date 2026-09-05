@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import math
 from typing import Any
 
-from backend.intelligence.extraction.models import (
+from .models import (
     ExtractionResult,
     JunctionCandidate,
     LineCandidate,

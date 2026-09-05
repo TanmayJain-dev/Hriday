@@ -1,4 +1,4 @@
-from backend.intelligence.extraction.models import (
+from backend.intelligence.topology.models import (
     ComponentObservation,
     ExtractionResult,
     LineCandidate,

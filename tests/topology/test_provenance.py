@@ -1,4 +1,4 @@
-from backend.intelligence.extraction.models import (
+from backend.intelligence.topology.models import (
     ExtractionResult,
     JunctionCandidate,
     LineCandidate,
@@ -51,7 +51,6 @@ def test_junction_uncertainty_preserves_candidate_provenance_and_confidence():
 
 
 def test_ambiguous_crossing_confidence_cannot_exceed_line_confidence():
-    from backend.intelligence.topology.crossings import classify_crossings
 
     extraction = ExtractionResult(
         document_id="synthetic-provenance-ambiguous",
