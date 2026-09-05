@@ -7,8 +7,8 @@
     {"id": "V-102", "type": "vessel"}
   ],
   "edges": [
-    {"source": "V-101", "target": "P-101", "relationship": "FLOWS_TO", "confidence": 0.98},
-    {"source": "P-101", "target": "E-101", "relationship": "FLOWS_TO", "confidence": 0.94},
-    {"source": "E-101", "target": "V-102", "relationship": "FLOWS_TO", "confidence": 0.96}
+    {"source": "V-101", "target": "P-101", "relationship": "FLOWS_TO", "confidence": 0.98, "evidence_ids": ["ev-pipe-101"]},
+    {"source": "P-101", "target": "E-101", "relationship": "FLOWS_TO", "confidence": 0.94, "evidence_ids": ["ev-pipe-102"]},
+    {"source": "E-101", "target": "V-102", "relationship": "FLOWS_TO", "confidence": 0.96, "evidence_ids": ["ev-pipe-103"]}
   ]
 }

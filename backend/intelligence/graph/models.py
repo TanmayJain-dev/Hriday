@@ -3,18 +3,151 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+
 @dataclass(frozen=True)
 class GraphNode:
+    """Canonical representation of an engineering entity in the P&ID graph."""
     id: str
     type: str
     attributes: dict[str, Any] = field(default_factory=dict)
-    confidence: float = 1.0
+    confidence: float | None = None
+    evidence_ids: tuple[str, ...] = ()
 
-@dataclass(frozen=True)
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "id": self.id,
+            "type": self.type,
+        }
+        if self.confidence is not None:
+            result["confidence"] = self.confidence
+        if self.attributes:
+            result["attributes"] = dict(self.attributes)
+        if self.evidence_ids:
+            result["evidence_ids"] = list(self.evidence_ids)
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> GraphNode:
+        conf_val = data.get("confidence")
+        return cls(
+            id=str(data["id"]),
+            type=str(data.get("type", "unknown")),
+            attributes=dict(data.get("attributes", {})),
+            confidence=float(conf_val) if conf_val is not None else None,
+            evidence_ids=tuple(data.get("evidence_ids", ())),
+        )
+
+
+@dataclass(frozen=True, init=False)
 class GraphEdge:
+    """Canonical representation of a directed relationship between two entities."""
     source: str
     target: str
     relationship: str
-    attributes: dict[str, Any] = field(default_factory=dict)
+    attributes: dict[str, Any]
+    confidence: float
+    evidence_ids: tuple[str, ...]
+
+    def __init__(
+        self,
+        source: str,
+        target: str,
+        relationship: str = "CONNECTED_TO",
+        attributes: dict[str, Any] | None = None,
+        confidence: float | None = None,
+        evidence_ids: tuple[str, ...] = (),
+    ) -> None:
+        if confidence is None:
+            raise ValueError(
+                f"GraphEdge({source!r}, {target!r}) requires explicit confidence; "
+                "silent confidence=1.0 defaults are prohibited."
+            )
+        object.__setattr__(self, "source", str(source))
+        object.__setattr__(self, "target", str(target))
+        object.__setattr__(self, "relationship", str(relationship))
+        object.__setattr__(self, "attributes", dict(attributes or {}))
+        object.__setattr__(self, "confidence", float(confidence))
+        object.__setattr__(self, "evidence_ids", tuple(evidence_ids))
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "source": self.source,
+            "target": self.target,
+            "relationship": self.relationship,
+            "confidence": self.confidence,
+        }
+        if self.attributes:
+            result["attributes"] = dict(self.attributes)
+        if self.evidence_ids:
+            result["evidence_ids"] = list(self.evidence_ids)
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> GraphEdge:
+        if "confidence" not in data or data["confidence"] is None:
+            raise ValueError(
+                f"GraphEdge serialization requires explicit 'confidence': {data}"
+            )
+        return cls(
+            source=str(data["source"]),
+            target=str(data["target"]),
+            relationship=str(data.get("relationship", "CONNECTED_TO")),
+            confidence=float(data["confidence"]),
+            attributes=dict(data.get("attributes", {})),
+            evidence_ids=tuple(data.get("evidence_ids", ())),
+        )
+
+
+@dataclass(frozen=True)
+class GraphPath:
+    """A traversed path through the graph preserving confidence and provenance."""
+    nodes: tuple[str, ...]
+    edges: tuple[GraphEdge, ...] = ()
     confidence: float = 1.0
     evidence_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.edges:
+            min_edge_conf = min(e.confidence for e in self.edges)
+            object.__setattr__(self, "confidence", round(min(self.confidence, min_edge_conf), 4))
+            # Harden provenance aggregation: edge evidence is always included
+            seen_evidence: list[str] = list(self.evidence_ids)
+            for edge in self.edges:
+                for eid in edge.evidence_ids:
+                    if eid not in seen_evidence:
+                        seen_evidence.append(eid)
+            object.__setattr__(self, "evidence_ids", tuple(seen_evidence))
+
+    def to_string(self) -> str:
+        return " -> ".join(self.nodes)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "path": list(self.nodes),
+            "confidence": self.confidence,
+            "evidence_ids": list(self.evidence_ids),
+            "edge_count": len(self.edges),
+        }
+
+
+@dataclass(frozen=True)
+class GraphResult:
+    """Graph output conforming to contracts/graph.schema.json."""
+    document_id: str
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "document_id": self.document_id,
+            "nodes": self.nodes,
+            "edges": self.edges,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> GraphResult:
+        return cls(
+            document_id=str(data["document_id"]),
+            nodes=list(data.get("nodes", [])),
+            edges=list(data.get("edges", [])),
+        )
