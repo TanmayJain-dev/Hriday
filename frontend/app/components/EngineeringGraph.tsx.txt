@@ -1,0 +1,377 @@
+"use client";
+
+import {
+  Background,
+  Controls,
+  Handle,
+  MiniMap,
+  Position,
+  ReactFlow,
+  type Edge,
+  type Node,
+} from "@xyflow/react";
+
+import "@xyflow/react/dist/style.css";
+
+type EngineeringGraphProps = {
+  selectedComponent: string;
+  onSelect: (component: string) => void;
+  detectedTags?: string[];
+  evidenceLocations?: {
+    tag: string;
+    confidence: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }[];
+};
+
+function classifyTag(tag: string) {
+  if (/^P-\d+/i.test(tag)) {
+    return {
+      name: "Pump",
+      type: "PUMP",
+    };
+  }
+
+  if (/^(V|XV|LV|FV|CV)-\d+/i.test(tag)) {
+    return {
+      name: "Process Valve",
+      type: "VALVE",
+    };
+  }
+
+  if (/^T-\d+/i.test(tag)) {
+    return {
+      name: "Process Vessel",
+      type: "VESSEL",
+    };
+  }
+
+  if (/^(PI|PT|PSV)-\d+/i.test(tag)) {
+    return {
+      name: "Pressure Instrument",
+      type: "PRESSURE INSTRUMENT",
+    };
+  }
+
+  if (/^(TI|FT|FI)-\d+/i.test(tag)) {
+    return {
+      name: "Process Instrument",
+      type: "INSTRUMENT",
+    };
+  }
+
+  return {
+    name: "Engineering Component",
+    type: "UNKNOWN",
+  };
+}
+
+type EquipmentNodeData = {
+  tag: string;
+  name: string;
+  type: string;
+  confidence: string;
+  status: "VERIFIED" | "REVIEW";
+};
+
+function EquipmentNode({
+  data,
+}: {
+  data: EquipmentNodeData;
+}) {
+  return (
+    <div
+      className={`min-w-[180px] rounded-xl border bg-[#071018] p-4 shadow-xl ${
+        data.status === "VERIFIED"
+          ? "border-emerald-400/30"
+          : "border-amber-400/30"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-2 !w-2 !border-0 !bg-cyan-400"
+      />
+
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-sm font-bold text-cyan-300">
+          {data.tag}
+        </span>
+
+        <span
+          className={`font-mono text-[9px] ${
+            data.status === "VERIFIED"
+              ? "text-emerald-300"
+              : "text-amber-300"
+          }`}
+        >
+          {data.status}
+        </span>
+      </div>
+
+      <p className="mt-2 text-xs text-slate-300">
+        {data.name}
+      </p>
+
+      <p className="mt-1 font-mono text-[9px] text-slate-500">
+        {data.type}
+      </p>
+
+      <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2">
+        <span className="font-mono text-[9px] text-slate-500">
+          CONFIDENCE
+        </span>
+
+        <span
+          className={`font-mono text-[10px] ${
+            data.status === "VERIFIED"
+              ? "text-emerald-300"
+              : "text-amber-300"
+          }`}
+        >
+          {data.confidence}
+        </span>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-2 !w-2 !border-0 !bg-cyan-400"
+      />
+    </div>
+  );
+}
+
+const nodeTypes = {
+  equipment: EquipmentNode,
+};
+
+const initialNodes: Node<EquipmentNodeData>[] = [
+  {
+    id: "P-101",
+    type: "equipment",
+    position: { x: 80, y: 180 },
+    data: {
+      tag: "P-101",
+      name: "Crude Feed Pump",
+      type: "CENTRIFUGAL PUMP",
+      confidence: "96%",
+      status: "VERIFIED",
+    },
+  },
+  {
+    id: "V-204",
+    type: "equipment",
+    position: { x: 390, y: 80 },
+    data: {
+      tag: "V-204",
+      name: "Process Isolation Valve",
+      type: "PROCESS VALVE",
+      confidence: "91%",
+      status: "VERIFIED",
+    },
+  },
+  {
+    id: "T-301",
+    type: "equipment",
+    position: { x: 700, y: 180 },
+    data: {
+      tag: "T-301",
+      name: "Feed Surge Drum",
+      type: "VESSEL",
+      confidence: "94%",
+      status: "VERIFIED",
+    },
+  },
+  {
+    id: "E-110",
+    type: "equipment",
+    position: { x: 390, y: 330 },
+    data: {
+      tag: "E-110",
+      name: "Feed Heat Exchanger",
+      type: "HEAT EXCHANGER",
+      confidence: "88%",
+      status: "REVIEW",
+    },
+  },
+];
+
+const initialEdges: Edge[] = [
+  {
+    id: "P-101-V-204",
+    source: "P-101",
+    target: "V-204",
+    type: "smoothstep",
+    animated: true,
+    style: {
+      stroke: "#22d3ee",
+      strokeWidth: 2,
+    },
+  },
+  {
+    id: "V-204-T-301",
+    source: "V-204",
+    target: "T-301",
+    type: "smoothstep",
+    animated: true,
+    style: {
+      stroke: "#34d399",
+      strokeWidth: 2,
+    },
+  },
+  {
+    id: "P-101-E-110",
+    source: "P-101",
+    target: "E-110",
+    type: "smoothstep",
+    style: {
+      stroke: "#f59e0b",
+      strokeWidth: 2,
+      strokeDasharray: "6 5",
+    },
+  },
+];
+
+export default function EngineeringGraph({
+  selectedComponent,
+  onSelect,
+  detectedTags = [],
+  evidenceLocations = [],
+}: EngineeringGraphProps) {
+  const ocrNodes: Node<EquipmentNodeData>[] = detectedTags
+    .filter(
+      (tag) =>
+        !initialNodes.some((node) => node.id === tag)
+    )
+    .map((tag, index) => {
+      const classification = classifyTag(tag);
+
+      const evidence = evidenceLocations.find(
+        (item) => item.tag === tag
+      );
+
+      const confidence = evidence
+        ? `${Math.round(evidence.confidence * 100)}%`
+        : "PENDING";
+
+      const status =
+        evidence && evidence.confidence >= 0.75
+          ? "VERIFIED"
+          : "REVIEW";
+
+      return {
+        id: tag,
+        type: "equipment",
+        position: {
+          x: 100 + (index % 3) * 300,
+          y: 500 + Math.floor(index / 3) * 180,
+        },
+        data: {
+          tag,
+          name: classification.name,
+          type: classification.type,
+          confidence,
+          status,
+        },
+      };
+    });
+
+  const graphNodes = [...initialNodes, ...ocrNodes];
+
+  const ocrEdges: Edge[] = ocrNodes
+    .slice(1)
+    .map((node, index) => ({
+      id: `ocr-${ocrNodes[index].id}-${node.id}`,
+      source: ocrNodes[index].id,
+      target: node.id,
+      type: "smoothstep",
+      animated: true,
+      style: {
+        stroke: "#22d3ee",
+        strokeWidth: 2,
+        strokeDasharray: "6 5",
+      },
+    }));
+
+  const graphEdges = [...initialEdges, ...ocrEdges];
+
+  return (
+    <div className="relative h-[560px] w-full overflow-hidden rounded-xl border border-cyan-400/10 bg-[#071018]">
+      <ReactFlow
+        nodes={graphNodes.map((node) => ({
+          ...node,
+          selected: node.id === selectedComponent,
+        }))}
+        edges={graphEdges}
+        nodeTypes={nodeTypes}
+        onNodeClick={(_, node) =>
+          onSelect(node.id)
+        }
+        fitView
+        fitViewOptions={{
+          padding: 0.25,
+        }}
+        minZoom={0.5}
+        maxZoom={1.8}
+        panOnScroll
+        zoomOnScroll
+        proOptions={{
+          hideAttribution: true,
+        }}
+      >
+        <Background
+          gap={32}
+          size={1}
+          color="rgba(148, 163, 184, 0.12)"
+        />
+
+        <Controls
+          position="bottom-left"
+          className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0b1722]/95 !shadow-2xl"
+        />
+
+        <MiniMap
+          position="bottom-right"
+          pannable
+          zoomable
+          nodeColor={(node) =>
+            node.id === selectedComponent
+              ? "#22d3ee"
+              : "#334155"
+          }
+          nodeStrokeColor="#22d3ee"
+          nodeStrokeWidth={1}
+          className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0b1722]/95"
+        />
+      </ReactFlow>
+
+      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-lg border border-cyan-400/15 bg-[#071018]/80 px-3 py-2 backdrop-blur-md">
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-300">
+          Topology Engine // Live
+        </div>
+
+        <div className="mt-1 flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+
+          <span className="font-mono text-[10px] text-slate-400">
+            GRAPH VERIFIED
+          </span>
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute right-4 top-4 z-10 rounded-lg border border-white/8 bg-[#071018]/75 px-3 py-2 backdrop-blur-md">
+        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate-500">
+          Relations
+        </div>
+
+        <div className="mt-1 font-mono text-sm text-slate-200">
+          {graphEdges.length}
+        </div>
+      </div>
+    </div>
+  );
+}
