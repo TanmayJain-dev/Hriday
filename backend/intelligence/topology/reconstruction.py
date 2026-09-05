@@ -59,11 +59,15 @@ def reconstruct_topology(
         junction_tolerance=config.junction_tolerance,
     )
     merged_nodes = _merge_nodes(endpoint_result.nodes, junction_result.nodes)
-    merged_edges = _merge_edges(endpoint_result.edges, junction_result.edges)
+    merged_edges, edge_uncertainties = _merge_edges(
+        endpoint_result.edges,
+        junction_result.edges,
+    )
     merged_uncertainties = _merge_uncertainties(
         extraction_result.uncertainties,
         endpoint_result.uncertainties,
         junction_result.uncertainties,
+        edge_uncertainties,
     )
     return TopologyResult(
         document_id=extraction_result.document_id,
@@ -96,19 +100,36 @@ def _merge_node(first: TopologyNode, second: TopologyNode) -> TopologyNode:
     )
 
 
-def _merge_edges(*groups: tuple[TopologyEdge, ...]) -> tuple[TopologyEdge, ...]:
+def _merge_edges(
+    *groups: tuple[TopologyEdge, ...],
+) -> tuple[tuple[TopologyEdge, ...], tuple[dict[str, Any], ...]]:
     by_key: dict[tuple[str, str, str], TopologyEdge] = {}
     for group in groups:
         for edge in group:
             key = (edge.source, edge.target, edge.relationship)
             existing = by_key.get(key)
             by_key[key] = edge if existing is None else _merge_edge(existing, edge)
-    return tuple(
+    merged_edges = tuple(
         sorted(
             by_key.values(),
             key=lambda edge: (edge.source, edge.target, edge.relationship),
         )
     )
+    valid_edges = tuple(edge for edge in merged_edges if edge.evidence_ids)
+    missing_provenance = tuple(
+        {
+            "source": edge.source,
+            "target": edge.target,
+            "relationship": edge.relationship,
+            "confidence": edge.confidence,
+            "reason": "missing_provenance",
+            "requires_verification": True,
+            "evidence_ids": [],
+        }
+        for edge in merged_edges
+        if not edge.evidence_ids
+    )
+    return valid_edges, missing_provenance
 
 
 def _merge_edge(first: TopologyEdge, second: TopologyEdge) -> TopologyEdge:

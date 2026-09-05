@@ -231,6 +231,10 @@ def _overlap_uncertainty(
         "overlap_pairs": [list(pair) for pair in overlap_pairs],
         "reason": "collinear_overlap_not_classified_as_junction",
         "requires_verification": True,
+        "confidence": min(
+            anchor.confidence,
+            *(line.confidence for line in lines),
+        ),
         "evidence_ids": list(
             _merge_evidence_ids(anchor.evidence_ids, *(line.evidence_ids for line in lines))
         ),
@@ -246,6 +250,7 @@ def _unsupported_candidate_uncertainty(
         "line_ids": [line.line_id for line in lines],
         "reason": "junction_candidate_lacks_two_supporting_lines",
         "requires_verification": True,
+        "confidence": anchor.confidence,
         "evidence_ids": list(anchor.evidence_ids),
     }
 
@@ -282,6 +287,7 @@ def _interior_crossing_uncertainties(
                     "line_ids": [first.line_id, second.line_id],
                     "reason": "interior_intersection_requires_junction_classification",
                     "requires_verification": True,
+                    "confidence": min(first.confidence, second.confidence),
                     "evidence_ids": list(
                         _merge_evidence_ids(first.evidence_ids, second.evidence_ids)
                     ),

@@ -84,6 +84,7 @@ def classify_crossings(
                     CrossingClassification(
                         line_ids=(first.line_id, second.line_id),
                         kind=CrossingKind.COLLINEAR_OVERLAP,
+                        confidence=min(first.confidence, second.confidence),
                         evidence_ids=evidence_ids,
                         reason="collinear_overlap_not_classified_as_junction",
                     )
@@ -100,7 +101,11 @@ def classify_crossings(
             if candidate is not None and _candidate_conflicts(candidate):
                 kind = CrossingKind.AMBIGUOUS
                 reason = "conflicting_junction_candidate_evidence"
-                confidence = candidate.confidence
+                confidence = min(
+                    first.confidence,
+                    second.confidence,
+                    candidate.confidence,
+                )
                 candidate_ids = candidate.evidence_ids
             elif endpoint_supported or candidate is not None:
                 kind = CrossingKind.CONFIRMED_JUNCTION

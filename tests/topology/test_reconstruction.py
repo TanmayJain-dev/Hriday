@@ -60,11 +60,11 @@ def test_full_pipeline_merges_component_line_and_junction_connectivity():
 def test_t_junction_and_multiple_lines_preserve_component_and_junction_facts():
     extraction = ExtractionResult(
         document_id="synthetic-full-002",
-        entities=(component("P-101", Point(5, 0)),),
+        entities=(component("P-101", Point(5, 0), evidence_ids=("ev-pump",)),),
         line_candidates=(
-            line("L-001", Point(5, 0), Point(5, 5)),
-            line("L-002", Point(0, 0), Point(10, 0)),
-            line("L-003", Point(5, 0), Point(5, -5)),
+            line("L-001", Point(5, 0), Point(5, 5), evidence_ids=("ev-l1",)),
+            line("L-002", Point(0, 0), Point(10, 0), evidence_ids=("ev-l2",)),
+            line("L-003", Point(5, 0), Point(5, -5), evidence_ids=("ev-l3",)),
         ),
     )
 
@@ -167,3 +167,19 @@ def test_uncertainties_are_aggregated_without_duplicates_and_provider_matches_pr
     assert len(
         [item for item in function_result.uncertainties if item["reason"] == "source_uncertainty"]
     ) == 1
+
+
+def test_provenance_less_generated_edge_becomes_review_uncertainty():
+    extraction = ExtractionResult(
+        document_id="synthetic-missing-provenance",
+        entities=(component("P-101", Point(0, 0)),),
+        line_candidates=(line("L-001", Point(0, 0), Point(5, 0)),),
+    )
+
+    result = reconstruct_topology(extraction, CONFIG)
+    assert result.edges == ()
+    uncertainty = next(
+        item for item in result.uncertainties if item["reason"] == "missing_provenance"
+    )
+    assert uncertainty["confidence"] == 0.9
+    assert uncertainty["requires_verification"] is True

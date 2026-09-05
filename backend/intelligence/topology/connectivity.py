@@ -86,6 +86,24 @@ def reconstruct_endpoint_connectivity(
                 ),
                 "reason": "multiple_components_match_line_endpoint",
                 "requires_verification": True,
+                "confidence": min(
+                    *(
+                        _component_by_id(extraction_result, match.component_id).confidence
+                        for match in candidates
+                    ),
+                    _line_by_id(extraction_result, line_id).confidence,
+                ),
+                "evidence_ids": list(
+                    _merge_evidence_ids(
+                        _line_by_id(extraction_result, line_id).evidence_ids,
+                        *(
+                            _component_by_id(
+                                extraction_result, match.component_id
+                            ).evidence_ids
+                            for match in candidates
+                        ),
+                    )
+                ),
             }
         )
 
