@@ -45,12 +45,17 @@ def build_graph_with_uncertainties(
 
     # 3. Extract edges, gating on verification flags, endpoint existence, and confidence
     raw_edges = topology.get("edges", [])
+    seen_edges: set[tuple[str, str, str]] = set()
     for edge in raw_edges:
         raw_conf = edge.get("confidence")
         requires_verification = bool(edge.get("requires_verification", False))
         source = str(edge.get("source", ""))
         target = str(edge.get("target", ""))
         relationship = str(edge.get("relationship", "CONNECTED_TO"))
+        edge_key = (source, target, relationship)
+        if edge_key in seen_edges:
+            continue
+        seen_edges.add(edge_key)
 
         # Check endpoints exist
         if not store.get_node(source) or not store.get_node(target):
@@ -62,6 +67,8 @@ def build_graph_with_uncertainties(
                 "confidence": conf,
                 "reason": "missing_endpoint_node",
                 "requires_verification": True,
+                "evidence_ids": list(edge.get("evidence_ids", [])),
+                "attributes": dict(edge.get("attributes", {})),
             })
             continue
 
@@ -90,6 +97,7 @@ def build_graph_with_uncertainties(
                 "reason": edge.get("reason", "low_confidence" if conf < confidence_threshold else "verification_required"),
                 "requires_verification": True,
                 "evidence_ids": list(edge.get("evidence_ids", [])),
+                "attributes": dict(edge.get("attributes", {})),
             })
             continue
 
@@ -104,6 +112,7 @@ def build_graph_with_uncertainties(
                 "reason": "missing_provenance",
                 "requires_verification": True,
                 "evidence_ids": [],
+                "attributes": dict(edge.get("attributes", {})),
             })
             continue
 
@@ -115,6 +124,8 @@ def build_graph_with_uncertainties(
             confidence=conf,
             attributes=dict(edge.get("attributes", {})),
             evidence_ids=tuple(raw_evidence),
+            requires_verification=requires_verification,
+            reason=edge.get("reason"),
         ))
 
     return store, uncertainties
