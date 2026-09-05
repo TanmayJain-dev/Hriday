@@ -132,11 +132,16 @@ def classify_crossings(
 def reconstruct_with_crossing_classification(
     extraction_result: ExtractionResult,
     config: CrossingClassificationConfig,
+    junction_tolerance: float | None = None,
 ) -> TopologyResult:
     """Return Phase 4 topology plus explicit Phase 5 crossing outcomes."""
     base = reconstruct_junctions(
         extraction_result,
-        JunctionMatchingConfig(config.intersection_tolerance),
+        JunctionMatchingConfig(
+            config.intersection_tolerance
+            if junction_tolerance is None
+            else junction_tolerance
+        ),
     )
     classifications = classify_crossings(extraction_result, config)
     blocked_junction_ids = {

@@ -7,6 +7,11 @@ from .crossings import (
 	classify_crossings,
 	reconstruct_with_crossing_classification,
 )
+from .reconstruction import (
+	DeterministicTopologyReconstructor,
+	TopologyReconstructionConfig,
+	reconstruct_topology,
+)
 from .connectivity import (
 	EndpointMatch,
 	EndpointMatchingConfig,
@@ -33,6 +38,7 @@ __all__ = [
 	"CrossingClassification",
 	"CrossingClassificationConfig",
 	"CrossingKind",
+	"DeterministicTopologyReconstructor",
 	"IntersectionKind",
 	"JunctionMatchingConfig",
 	"SegmentIntersection",
@@ -40,6 +46,7 @@ __all__ = [
 	"TopologyNode",
 	"TopologyProvider",
 	"TopologyResult",
+	"TopologyReconstructionConfig",
 	"closest_segment_endpoint",
 	"classify_crossings",
 	"distance",
@@ -50,5 +57,6 @@ __all__ = [
 	"reconstruct_endpoint_connectivity",
 	"reconstruct_junctions",
 	"reconstruct_with_crossing_classification",
+	"reconstruct_topology",
 	"segments_collinear",
 ]
