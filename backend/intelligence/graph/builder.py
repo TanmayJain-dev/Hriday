@@ -3,26 +3,20 @@ from __future__ import annotations
 from typing import Any
 from .models import GraphEdge, GraphNode, GraphResult
 from .networkx_store import NetworkXGraphStore
-from backend.intelligence.topology.models import TopologyResult
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.70
 
 
 def build_graph_with_uncertainties(
-    topology: TopologyResult | dict[str, Any],
+    topology: dict[str, Any],
     confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
 ) -> tuple[NetworkXGraphStore, list[dict[str, Any]]]:
     """Build a GraphStore from a TopologyResult, isolating unverified/uncertain claims.
 
-    Accepts either a TopologyResult object or a dict representation.
     Non-negotiable rule: Do not create a graph edge without an evidence/rule path supporting it.
     Uncertain edges (confidence < threshold, requires_verification=True, or ambiguous) are routed
     to the uncertainties list for human review rather than asserted as graph facts.
     """
-    # Convert TopologyResult to dict if needed
-    if isinstance(topology, TopologyResult):
-        topology = topology.to_dict()
-    
     store = NetworkXGraphStore()
     uncertainties: list[dict[str, Any]] = []
 
@@ -51,17 +45,12 @@ def build_graph_with_uncertainties(
 
     # 3. Extract edges, gating on verification flags, endpoint existence, and confidence
     raw_edges = topology.get("edges", [])
-    seen_edges: set[tuple[str, str, str]] = set()
     for edge in raw_edges:
         raw_conf = edge.get("confidence")
         requires_verification = bool(edge.get("requires_verification", False))
         source = str(edge.get("source", ""))
         target = str(edge.get("target", ""))
         relationship = str(edge.get("relationship", "CONNECTED_TO"))
-        edge_key = (source, target, relationship)
-        if edge_key in seen_edges:
-            continue
-        seen_edges.add(edge_key)
 
         # Check endpoints exist
         if not store.get_node(source) or not store.get_node(target):
@@ -73,8 +62,6 @@ def build_graph_with_uncertainties(
                 "confidence": conf,
                 "reason": "missing_endpoint_node",
                 "requires_verification": True,
-                "evidence_ids": list(edge.get("evidence_ids", [])),
-                "attributes": dict(edge.get("attributes", {})),
             })
             continue
 
@@ -103,7 +90,6 @@ def build_graph_with_uncertainties(
                 "reason": edge.get("reason", "low_confidence" if conf < confidence_threshold else "verification_required"),
                 "requires_verification": True,
                 "evidence_ids": list(edge.get("evidence_ids", [])),
-                "attributes": dict(edge.get("attributes", {})),
             })
             continue
 
@@ -118,7 +104,6 @@ def build_graph_with_uncertainties(
                 "reason": "missing_provenance",
                 "requires_verification": True,
                 "evidence_ids": [],
-                "attributes": dict(edge.get("attributes", {})),
             })
             continue
 
