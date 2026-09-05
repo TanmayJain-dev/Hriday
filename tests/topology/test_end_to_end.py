@@ -1,11 +1,10 @@
-from backend.intelligence.extraction.models import (
+from backend.intelligence.topology.models import (
     ComponentObservation,
     ExtractionResult,
     JunctionCandidate,
     LineCandidate,
     Point,
 )
-from backend.intelligence.graph.builder import build_graph_with_uncertainties
 from backend.intelligence.topology.reconstruction import (
     TopologyReconstructionConfig,
     reconstruct_topology,
@@ -29,13 +28,7 @@ def component(component_id, point, confidence=0.95, evidence_ids=()):
     )
 
 
-def graph_for(extraction):
-    topology = reconstruct_topology(extraction, CONFIG)
-    store, uncertainties = build_graph_with_uncertainties(topology.to_dict())
-    return topology, store, uncertainties
-
-
-def test_component_endpoint_and_two_line_junction_reach_graph():
+def test_component_endpoint_and_two_line_junction():
     extraction = ExtractionResult(
         "e2e-component-junction",
         entities=(component("P-101", Point(0, 0), evidence_ids=("ev-p",)),),
@@ -45,16 +38,18 @@ def test_component_endpoint_and_two_line_junction_reach_graph():
         ),
     )
 
-    topology, store, uncertainties = graph_for(extraction)
-    assert uncertainties == []
-    assert {edge.source for edge in store.all_edges()} == {"P-101", "L-001", "L-002"}
-    assert store.get_node("JUNCTION-5-0") is not None
-    assert all(edge.confidence <= 0.9 for edge in store.all_edges())
-    assert all(edge.evidence_ids for edge in store.all_edges())
-    assert topology.to_dict()["document_id"] == "e2e-component-junction"
+    topology = reconstruct_topology(extraction, CONFIG)
+
+    assert topology.uncertainties == ()
+    assert {edge.source for edge in topology.edges} == {"P-101", "L-001", "L-002"}
+    assert {edge.target for edge in topology.edges} == {"L-001", "JUNCTION-5-0"}
+    assert any(node.id == "JUNCTION-5-0" for node in topology.nodes)
+    assert all(edge.confidence <= 0.9 for edge in topology.edges)
+    assert all(edge.evidence_ids for edge in topology.edges)
+    assert topology.document_id == "e2e-component-junction"
 
 
-def test_t_junction_and_multiple_convergence_preserve_all_graph_facts():
+def test_t_junction_and_multiple_convergence_preserve_topology_facts():
     extraction = ExtractionResult(
         "e2e-t-junction",
         entities=(component("P-101", Point(5, 0), evidence_ids=("ev-p",)),),
@@ -65,13 +60,19 @@ def test_t_junction_and_multiple_convergence_preserve_all_graph_facts():
         ),
     )
 
-    _, store, uncertainties = graph_for(extraction)
-    assert uncertainties == []
-    assert len(store.get_edges(target="JUNCTION-5-0")) == 3
-    assert store.get_edge("P-101", "L-001") is not None
+    topology = reconstruct_topology(extraction, CONFIG)
+
+    assert topology.uncertainties == ()
+    assert len(
+        [edge for edge in topology.edges if edge.target == "JUNCTION-5-0"]
+    ) == 3
+    assert any(
+        edge.source == "P-101" and edge.target == "L-001"
+        for edge in topology.edges
+    )
 
 
-def test_explicit_intersection_is_confirmed_and_provenance_survives_graph():
+def test_explicit_intersection_is_confirmed_and_provenance_survives():
     extraction = ExtractionResult(
         "e2e-explicit",
         line_candidates=(
@@ -83,15 +84,17 @@ def test_explicit_intersection_is_confirmed_and_provenance_survives_graph():
         ),
     )
 
-    _, store, uncertainties = graph_for(extraction)
-    assert uncertainties == []
-    junction = store.get_node("JUNCTION-5-5")
-    assert junction is not None
+    topology = reconstruct_topology(extraction, CONFIG)
+
+    assert topology.uncertainties == ()
+    junction = next(
+        node for node in topology.nodes if node.id == "JUNCTION-5-5"
+    )
     assert junction.confidence == 0.7
     assert junction.evidence_ids == ("ev-j", "ev-a", "ev-b")
 
 
-def test_crossing_ambiguity_and_overlap_never_become_graph_edges():
+def test_crossing_and_overlap_never_become_topology_edges():
     cases = (
         ExtractionResult(
             "e2e-crossing",
@@ -110,13 +113,13 @@ def test_crossing_ambiguity_and_overlap_never_become_graph_edges():
     )
 
     for extraction in cases:
-        _, store, uncertainties = graph_for(extraction)
-        assert store.all_edges() == []
-        assert uncertainties
-        assert all(item["reason"] or item["kind"] for item in uncertainties)
+        topology = reconstruct_topology(extraction, CONFIG)
+        assert topology.edges == ()
+        assert topology.uncertainties
+        assert all(item.get("reason") or item.get("kind") for item in topology.uncertainties)
 
 
-def test_conflicting_intersection_requires_verification_after_graph_boundary():
+def test_conflicting_intersection_requires_verification():
     extraction = ExtractionResult(
         "e2e-ambiguous",
         line_candidates=(
@@ -134,10 +137,17 @@ def test_conflicting_intersection_requires_verification_after_graph_boundary():
         ),
     )
 
-    _, store, uncertainties = graph_for(extraction)
-    assert store.all_edges() == []
-    assert any(item.get("kind") == "ambiguous" for item in uncertainties)
-    assert all(item.get("requires_verification") is True for item in uncertainties)
+    topology = reconstruct_topology(extraction, CONFIG)
+
+    assert topology.edges == ()
+    assert any(
+        item.get("kind") == "ambiguous"
+        for item in topology.uncertainties
+    )
+    assert all(
+        item.get("requires_verification") is True
+        for item in topology.uncertainties
+    )
 
 
 def test_near_miss_and_missing_evidence_are_blocked_conservatively():
@@ -148,18 +158,26 @@ def test_near_miss_and_missing_evidence_are_blocked_conservatively():
             line("L-002", Point(5.01, 0), Point(10, 0), evidence_ids=("ev-b",)),
         ),
     )
+
     missing_evidence = ExtractionResult(
         "e2e-no-evidence",
         entities=(component("P-101", Point(0, 0)),),
-        line_candidates=(line("L-001", Point(0, 0), Point(5, 0)),),
+        line_candidates=(
+            line("L-001", Point(0, 0), Point(5, 0)),
+        ),
     )
 
-    _, near_store, near_uncertainties = graph_for(near_miss)
-    _, missing_store, missing_uncertainties = graph_for(missing_evidence)
-    assert near_store.all_edges() == []
-    assert near_uncertainties == []
-    assert missing_store.all_edges() == []
-    assert any(item["reason"] == "missing_provenance" for item in missing_uncertainties)
+    near_topology = reconstruct_topology(near_miss, CONFIG)
+    missing_topology = reconstruct_topology(missing_evidence, CONFIG)
+
+    assert near_topology.edges == ()
+    assert near_topology.uncertainties == ()
+
+    assert missing_topology.edges == ()
+    assert any(
+        item["reason"] == "missing_provenance"
+        for item in missing_topology.uncertainties
+    )
 
 
 def test_multiple_components_and_repeated_pipeline_output_are_deterministic():
@@ -174,20 +192,22 @@ def test_multiple_components_and_repeated_pipeline_output_are_deterministic():
         ),
     )
 
-    first_topology, first_store, first_uncertainties = graph_for(extraction)
-    second_topology, second_store, second_uncertainties = graph_for(extraction)
-    assert first_topology.to_dict() == second_topology.to_dict()
-    assert first_store.to_dict("e2e-repeatable") == second_store.to_dict("e2e-repeatable")
-    assert first_uncertainties == second_uncertainties
-    assert len(first_store.all_nodes()) == len({node.id for node in first_store.all_nodes()})
-    assert len(first_store.all_edges()) == len({(edge.source, edge.target, edge.relationship) for edge in first_store.all_edges()})
+    first = reconstruct_topology(extraction, CONFIG)
+    second = reconstruct_topology(extraction, CONFIG)
+
+    assert first.to_dict() == second.to_dict()
+    assert len(first.nodes) == len({node.id for node in first.nodes})
+    assert len(first.edges) == len(
+        {(edge.source, edge.target, edge.relationship) for edge in first.edges}
+    )
 
 
-def test_empty_extraction_produces_empty_graph():
-    topology, store, uncertainties = graph_for(ExtractionResult("e2e-empty"))
+def test_empty_extraction_produces_empty_topology():
+    topology = reconstruct_topology(
+        ExtractionResult("e2e-empty"),
+        CONFIG,
+    )
 
     assert topology.nodes == ()
     assert topology.edges == ()
-    assert store.all_nodes() == []
-    assert store.all_edges() == []
-    assert uncertainties == []
+    assert topology.uncertainties == ()
