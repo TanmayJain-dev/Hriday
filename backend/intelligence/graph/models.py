@@ -47,8 +47,6 @@ class GraphEdge:
     attributes: dict[str, Any]
     confidence: float
     evidence_ids: tuple[str, ...]
-    requires_verification: bool
-    reason: str | None
 
     def __init__(
         self,
@@ -58,8 +56,6 @@ class GraphEdge:
         attributes: dict[str, Any] | None = None,
         confidence: float | None = None,
         evidence_ids: tuple[str, ...] = (),
-        requires_verification: bool = False,
-        reason: str | None = None,
     ) -> None:
         if confidence is None:
             raise ValueError(
@@ -72,8 +68,6 @@ class GraphEdge:
         object.__setattr__(self, "attributes", dict(attributes or {}))
         object.__setattr__(self, "confidence", float(confidence))
         object.__setattr__(self, "evidence_ids", tuple(evidence_ids))
-        object.__setattr__(self, "requires_verification", bool(requires_verification))
-        object.__setattr__(self, "reason", reason)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -86,10 +80,6 @@ class GraphEdge:
             result["attributes"] = dict(self.attributes)
         if self.evidence_ids:
             result["evidence_ids"] = list(self.evidence_ids)
-        if self.requires_verification:
-            result["requires_verification"] = True
-        if self.reason is not None:
-            result["reason"] = self.reason
         return result
 
     @classmethod
@@ -105,8 +95,6 @@ class GraphEdge:
             confidence=float(data["confidence"]),
             attributes=dict(data.get("attributes", {})),
             evidence_ids=tuple(data.get("evidence_ids", ())),
-            requires_verification=bool(data.get("requires_verification", False)),
-            reason=data.get("reason"),
         )
 
 

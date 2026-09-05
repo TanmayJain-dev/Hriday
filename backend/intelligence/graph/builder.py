@@ -3,20 +3,26 @@ from __future__ import annotations
 from typing import Any
 from .models import GraphEdge, GraphNode, GraphResult
 from .networkx_store import NetworkXGraphStore
+from backend.intelligence.topology.models import TopologyResult
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.70
 
 
 def build_graph_with_uncertainties(
-    topology: dict[str, Any],
+    topology: TopologyResult | dict[str, Any],
     confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
 ) -> tuple[NetworkXGraphStore, list[dict[str, Any]]]:
     """Build a GraphStore from a TopologyResult, isolating unverified/uncertain claims.
 
+    Accepts either a TopologyResult object or a dict representation.
     Non-negotiable rule: Do not create a graph edge without an evidence/rule path supporting it.
     Uncertain edges (confidence < threshold, requires_verification=True, or ambiguous) are routed
     to the uncertainties list for human review rather than asserted as graph facts.
     """
+    # Convert TopologyResult to dict if needed
+    if isinstance(topology, TopologyResult):
+        topology = topology.to_dict()
+    
     store = NetworkXGraphStore()
     uncertainties: list[dict[str, Any]] = []
 
@@ -124,8 +130,6 @@ def build_graph_with_uncertainties(
             confidence=conf,
             attributes=dict(edge.get("attributes", {})),
             evidence_ids=tuple(raw_evidence),
-            requires_verification=requires_verification,
-            reason=edge.get("reason"),
         ))
 
     return store, uncertainties

@@ -1,4 +1,11 @@
-"""Structured visual observations consumed by topology reconstruction."""
+"""Structured visual observations consumed by topology reconstruction.
+
+OWNERSHIP: These models are M3's extraction domain.
+- Topology (M4) consumes ExtractionResult observations for deterministic reconstruction.
+- M3 will replace this implementation with the final extraction contract.
+- Topology MUST NOT modify or redesign these models to serve graph/orchestration needs.
+- M3 is responsible for the eventual extraction.schema.json contract and implementation.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

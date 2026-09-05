@@ -143,7 +143,8 @@ def test_graph_conversion_is_deterministic_and_empty_result_is_supported():
 
 
 def test_graph_edge_model_round_trips_reason_and_review_state():
-    topology = topology_result(
+    # Test 1: Confirmed edges (requires_verification=False) reach the graph without topology metadata
+    confirmed_topology = topology_result(
         edges=[
             {
                 **topology_result()["edges"][0],
@@ -152,9 +153,27 @@ def test_graph_edge_model_round_trips_reason_and_review_state():
             }
         ]
     )
-    store, _ = build_graph_with_uncertainties(topology)
+    store, _ = build_graph_with_uncertainties(confirmed_topology)
     edge = store.get_edge("P-101", "L-001")
     assert edge is not None
-    assert edge.reason == "documented_rule"
-    assert edge.requires_verification is False
-    assert store.to_dict("synthetic-boundary-001")["edges"][0]["reason"] == "documented_rule"
+    # GraphEdge no longer stores reason/requires_verification; these are topology/uncertainties concerns
+    assert not hasattr(edge, 'reason') or edge.reason is None
+    assert not hasattr(edge, 'requires_verification') or edge.requires_verification is False
+    # Verify the graph serialization does not include these topology-specific fields
+    edge_dict = store.to_dict("synthetic-boundary-001")["edges"][0]
+    assert "reason" not in edge_dict or edge_dict.get("reason") is None
+    
+    # Test 2: Unconfirmed edges (requires_verification=True) route to uncertainties with metadata preserved
+    uncertain_topology = topology_result(
+        edges=[
+            {
+                **topology_result()["edges"][0],
+                "reason": "documented_rule",
+                "requires_verification": True,
+            }
+        ]
+    )
+    store2, uncertainties = build_graph_with_uncertainties(uncertain_topology)
+    assert store2.all_edges() == []
+    assert uncertainties[0]["reason"] == "documented_rule"
+    assert uncertainties[0]["requires_verification"] is True
