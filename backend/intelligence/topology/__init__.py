@@ -1,4 +1,12 @@
 from .interfaces import TopologyProvider
+from .junctions import JunctionMatchingConfig, reconstruct_junctions
+from .crossings import (
+	CrossingClassification,
+	CrossingClassificationConfig,
+	CrossingKind,
+	classify_crossings,
+	reconstruct_with_crossing_classification,
+)
 from .connectivity import (
 	EndpointMatch,
 	EndpointMatchingConfig,
@@ -22,18 +30,25 @@ __all__ = [
 	"DEFAULT_GEOMETRY_TOLERANCE",
 	"EndpointMatch",
 	"EndpointMatchingConfig",
+	"CrossingClassification",
+	"CrossingClassificationConfig",
+	"CrossingKind",
 	"IntersectionKind",
+	"JunctionMatchingConfig",
 	"SegmentIntersection",
 	"TopologyEdge",
 	"TopologyNode",
 	"TopologyProvider",
 	"TopologyResult",
 	"closest_segment_endpoint",
+	"classify_crossings",
 	"distance",
 	"intersect_segments",
 	"point_on_segment",
 	"point_to_segment_distance",
 	"points_close",
 	"reconstruct_endpoint_connectivity",
+	"reconstruct_junctions",
+	"reconstruct_with_crossing_classification",
 	"segments_collinear",
 ]
