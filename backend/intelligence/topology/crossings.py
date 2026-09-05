@@ -35,6 +35,8 @@ class CrossingClassification:
             "kind": self.kind.value,
             "confidence": self.confidence,
             "evidence_ids": list(self.evidence_ids),
+            "requires_verification": self.kind
+            in {CrossingKind.AMBIGUOUS, CrossingKind.COLLINEAR_OVERLAP},
         }
         if self.point is not None:
             result["point"] = self.point.to_dict()
