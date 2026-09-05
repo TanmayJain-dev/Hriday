@@ -18,7 +18,12 @@ from .models import TopologyEdge, TopologyNode, TopologyResult
 
 @dataclass(frozen=True)
 class TopologyReconstructionConfig:
-    """Explicit engineering tolerances for each deterministic topology stage."""
+    """Explicit engineering tolerances for each deterministic topology stage.
+
+    These are domain matching tolerances, distinct from the numerical geometry
+    tolerance. Topology reconstruction never infers process direction or
+    operational intent.
+    """
 
     endpoint_tolerance: float
     junction_tolerance: float
@@ -35,7 +40,7 @@ class TopologyReconstructionConfig:
 
 
 class DeterministicTopologyReconstructor:
-    """TopologyProvider implementation for the complete deterministic pipeline."""
+    """TopologyProvider for the complete deterministic reconstruction pipeline."""
 
     def __init__(self, config: TopologyReconstructionConfig) -> None:
         self.config = config
@@ -48,7 +53,13 @@ def reconstruct_topology(
     extraction_result: ExtractionResult,
     config: TopologyReconstructionConfig,
 ) -> TopologyResult:
-    """Run endpoint connectivity, junctions, and crossing classification."""
+    """Convert an ExtractionResult into a conservative TopologyResult.
+
+    The pipeline establishes physical connectivity from visual observations
+    and deterministic geometric/domain rules. It does not infer process flow
+    direction, operational intent, or component-to-component shortcuts.
+    """
+    _validate_extraction_ids(extraction_result)
     endpoint_result = reconstruct_endpoint_connectivity(
         extraction_result,
         EndpointMatchingConfig(config.endpoint_tolerance),
@@ -75,6 +86,26 @@ def reconstruct_topology(
         edges=merged_edges,
         uncertainties=merged_uncertainties,
     )
+
+
+def _validate_extraction_ids(extraction_result: ExtractionResult) -> None:
+    if not extraction_result.document_id.strip():
+        raise ValueError("document_id must be non-empty")
+
+    identifiers: list[tuple[str, str]] = []
+    identifiers.extend(("component", entity.id) for entity in extraction_result.entities)
+    identifiers.extend(("line", line.line_id) for line in extraction_result.line_candidates)
+    identifiers.extend(
+        ("junction", candidate.junction_id)
+        for candidate in extraction_result.junction_candidates
+    )
+    seen: set[str] = set()
+    for kind, identifier in identifiers:
+        if not identifier.strip():
+            raise ValueError(f"{kind} ID must be non-empty")
+        if identifier in seen:
+            raise ValueError(f"duplicate topology input ID: {identifier}")
+        seen.add(identifier)
 
 
 def _merge_nodes(*groups: tuple[TopologyNode, ...]) -> tuple[TopologyNode, ...]:
